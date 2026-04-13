@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  REVIEWED
+  INVOICED
+  PAID
+  FULFILLED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  INVOICED
+  PARTIAL
+  PAID
+  VOID
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String
+  isFuture    Boolean   @default(false)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id                         String   @id @default(cuid())
+  name                       String
+  slug                       String   @unique
+  subtitle                   String
+  shortDescription           String
+  longDescription            String
+  price                      Decimal  @db.Decimal(10, 2)
+  compareAtPrice             Decimal? @db.Decimal(10, 2)
+  images                     Json
+  stockQuantity              Int      @default(0)
+  sku                        String   @unique
+  badge                      String?
+  includesComplimentaryKit   Boolean  @default(false)
+  attributes                 Json
+  isActive                   Boolean  @default(true)
+  isFeatured                 Boolean  @default(false)
+  categoryId                 String
+  category                   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+}
+
+model Faq {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LegalPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  intro     String
+  sections  Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model HomepageBlock {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  title     String
+  body      String
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model PaymentMethodConfig {
+  id          String   @id @default(cuid())
+  methodKey   String   @unique
+  label       String
+  description String
+  enabled     Boolean  @default(false)
+  mode        String
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+model OrderRequest {
+  id                    String        @id @default(cuid())
+  orderReference        String        @unique
+  customerName          String
+  email                 String
+  phone                 String
+  shippingAddress       String
+  city                  String
+  state                 String
+  postalCode            String
+  country               String
+  notes                 String?
+  paymentMethodId       String
+  paymentMethodLabel    String
+  acknowledgements      Json
+  status                OrderStatus   @default(PENDING)
+  paymentStatus         PaymentStatus @default(UNPAID)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  items                 OrderItem[]
+}
+
+model OrderItem {
+  id             String       @id @default(cuid())
+  orderRequestId String
+  productId      String?
+  productName    String
+  sku            String?
+  quantity       Int
+  unitPrice      Decimal      @db.Decimal(10, 2)
+  createdAt      DateTime     @default(now())
+
+  orderRequest   OrderRequest @relation(fields: [orderRequestId], references: [id], onDelete: Cascade)
+}
