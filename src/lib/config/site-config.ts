@@ -1,24 +1,22 @@
-const getEnv = (key: string, fallback: string) => {
-  const value = process.env[key];
-  return value && value.trim().length > 0 ? value : fallback;
-};
+const pick = (inlined: string | undefined, fallback: string) =>
+  inlined && inlined.trim().length > 0 ? inlined : fallback;
 
 export const siteConfig = {
-  brandName: getEnv('NEXT_PUBLIC_BRAND_NAME', 'Brand Name'),
-  supportEmail: getEnv('NEXT_PUBLIC_SUPPORT_EMAIL', 'support@example.com'),
-  domain: getEnv('NEXT_PUBLIC_DOMAIN', 'example.com'),
-  currency: getEnv('NEXT_PUBLIC_CURRENCY', 'USD'),
-  supportPhone: getEnv('NEXT_PUBLIC_SUPPORT_PHONE', '+1 (800) 555-0199'),
-  supportAddress: getEnv('NEXT_PUBLIC_SUPPORT_ADDRESS', '123 Business Ave, Suite 100'),
+  brandName:       pick(process.env.NEXT_PUBLIC_BRAND_NAME,           'Brand Name'),
+  supportEmail:    pick(process.env.NEXT_PUBLIC_SUPPORT_EMAIL,        'support@example.com'),
+  domain:          pick(process.env.NEXT_PUBLIC_DOMAIN,               'example.com'),
+  currency:        pick(process.env.NEXT_PUBLIC_CURRENCY,             'USD'),
+  supportPhone:    pick(process.env.NEXT_PUBLIC_SUPPORT_PHONE,        '+1 (800) 555-0199'),
+  supportAddress:  pick(process.env.NEXT_PUBLIC_SUPPORT_ADDRESS,      '123 Business Ave, Suite 100'),
   logos: {
-    primary: getEnv('NEXT_PUBLIC_LOGO_PRIMARY', '/images/brand/logo-primary.png'),
-    alternate: getEnv('NEXT_PUBLIC_LOGO_ALT', '/images/brand/logo-alt.png'),
+    primary:   pick(process.env.NEXT_PUBLIC_LOGO_PRIMARY, '/images/brand/logo-primary.png'),
+    alternate: pick(process.env.NEXT_PUBLIC_LOGO_ALT,     '/images/brand/logo-alt.png'),
   },
   theme: {
-    bg: getEnv('NEXT_PUBLIC_THEME_BG', '#f8f7f5'),
-    bgSoft: getEnv('NEXT_PUBLIC_THEME_BG_SOFT', '#f1eee8'),
-    text: getEnv('NEXT_PUBLIC_THEME_TEXT', '#111111'),
-    muted: getEnv('NEXT_PUBLIC_THEME_MUTED', '#6b7280'),
-    accent: getEnv('NEXT_PUBLIC_THEME_ACCENT', '#d4af37'),
+    bg:     pick(process.env.NEXT_PUBLIC_THEME_BG,      '#f8f7f5'),
+    bgSoft: pick(process.env.NEXT_PUBLIC_THEME_BG_SOFT, '#f1eee8'),
+    text:   pick(process.env.NEXT_PUBLIC_THEME_TEXT,    '#111111'),
+    muted:  pick(process.env.NEXT_PUBLIC_THEME_MUTED,   '#6b7280'),
+    accent: pick(process.env.NEXT_PUBLIC_THEME_ACCENT,  '#d4af37'),
   },
 } as const;
