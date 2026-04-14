@@ -1,7 +1,11 @@
+import { config as loadEnv } from 'dotenv';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 import { categories, faqs, legal, paymentMethods, products } from '../src/lib/data/site';
+
+loadEnv({ path: '.env.local' });
+loadEnv();
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 
