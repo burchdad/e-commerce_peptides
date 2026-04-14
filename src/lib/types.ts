@@ -11,6 +11,12 @@ export type ProductAttribute = {
   value: string;
 };
 
+export type ProductImageMap = {
+  primary: string;
+  gallery?: string[];
+  hover?: string;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -21,7 +27,7 @@ export type Product = {
   longDescription: string;
   price: number;
   compareAtPrice?: number;
-  images: string[];
+  images: ProductImageMap;
   stockQuantity: number;
   sku: string;
   badge?: string;

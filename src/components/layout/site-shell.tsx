@@ -11,7 +11,7 @@ export const SiteShell = ({ children }: { children: React.ReactNode }) => {
     <CartProvider>
       <AgeGateModal />
       <Navbar />
-      <main className="container py-10">{children}</main>
+      <main className="container py-8 md:py-12">{children}</main>
       <Footer />
     </CartProvider>
   );

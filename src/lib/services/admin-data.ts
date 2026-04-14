@@ -7,6 +7,24 @@ import {
 
 import { categories, faqs, legal, products } from '@/lib/data/site';
 import { hasDatabaseUrl, prisma } from '@/lib/db';
+import type { ProductImageMap } from '@/lib/types';
+
+const toProductImages = (value: unknown): ProductImageMap => {
+  if (value && typeof value === 'object' && 'primary' in (value as Record<string, unknown>)) {
+    return value as ProductImageMap;
+  }
+
+  if (Array.isArray(value) && value.length > 0) {
+    const [primary, ...gallery] = value as string[];
+    return {
+      primary,
+      gallery: gallery.length > 0 ? gallery : undefined,
+      hover: gallery[0],
+    };
+  }
+
+  return { primary: '' };
+};
 
 type ProductInput = {
   name: string;
@@ -33,7 +51,7 @@ const toProduct = (product: PrismaProduct & { category: { slug: string } }) => (
   longDescription: product.longDescription,
   price: Number(product.price),
   compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : undefined,
-  images: (product.images as string[]) ?? [],
+  images: toProductImages(product.images),
   stockQuantity: product.stockQuantity,
   sku: product.sku,
   badge: product.badge ?? undefined,
@@ -71,7 +89,7 @@ export const createAdminProduct = async (input: ProductInput) => {
     longDescription: input.longDescription,
     price: input.price,
     compareAtPrice: null,
-    images: [],
+    images: { primary: '' },
     stockQuantity: input.stockQuantity,
     sku: input.sku,
     badge: null,

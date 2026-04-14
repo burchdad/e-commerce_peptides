@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable} h-full`}>
-      <body className="min-h-full bg-[var(--color-ink)] text-[var(--color-ivory)]">
+      <body className="min-h-full bg-[var(--color-bg)] text-[var(--color-text)]">
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

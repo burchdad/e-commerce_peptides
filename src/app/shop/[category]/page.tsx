@@ -5,18 +5,20 @@ import { ProductGrid } from '@/components/commerce/product-grid';
 import { CategoryBanner } from '@/components/ui/category-banner';
 import { getCategoryBySlug, getProductsByCategory } from '@/lib/utils/catalog';
 
-export function generateMetadata({ params }: { params: { category: string } }): Metadata {
-  const category = getCategoryBySlug(params.category);
+export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
+  const { category: categorySlug } = await params;
+  const category = getCategoryBySlug(categorySlug);
   return {
     title: category ? `${category.name} | Noir Axis Research` : 'Category | Noir Axis Research',
   };
 }
 
-export default function CategoryPage({ params }: { params: { category: string } }) {
-  const category = getCategoryBySlug(params.category);
+export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
+  const { category: categorySlug } = await params;
+  const category = getCategoryBySlug(categorySlug);
   if (!category) notFound();
 
-  const categoryProducts = getProductsByCategory(params.category);
+  const categoryProducts = getProductsByCategory(categorySlug);
 
   return (
     <div className="space-y-8">

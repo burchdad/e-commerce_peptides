@@ -5,7 +5,7 @@ import { ProductCard } from '@/components/commerce/product-card';
 export const ProductGrid = ({ products }: { products: Product[] }) => {
   if (products.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-8 text-center text-[var(--color-sand)]">
+      <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-white p-8 text-center text-[var(--color-muted)]">
         Products for this category are being prepared.
       </div>
     );
