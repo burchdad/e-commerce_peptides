@@ -154,13 +154,13 @@ const mapWorkflowToDb = (status: OrderWorkflowStatus): { status: OrderStatus; pa
     case 'pending':
       return { status: 'PENDING', paymentStatus: 'UNPAID' };
     case 'reviewing':
-      return { status: 'REVIEWED', paymentStatus: 'UNPAID' };
+      return { status: 'REVIEWING', paymentStatus: 'UNPAID' };
     case 'approved':
-      return { status: 'REVIEWED', paymentStatus: 'PARTIAL' };
+      return { status: 'APPROVED', paymentStatus: 'PARTIAL' };
     case 'payment-sent':
-      return { status: 'INVOICED', paymentStatus: 'INVOICED' };
+      return { status: 'PAYMENT_SENT', paymentStatus: 'INVOICED' };
     case 'completed':
-      return { status: 'FULFILLED', paymentStatus: 'PAID' };
+      return { status: 'COMPLETED', paymentStatus: 'PAID' };
     case 'cancelled':
       return { status: 'CANCELLED', paymentStatus: 'VOID' };
   }
