@@ -1,5 +1,4 @@
 'use client';
-'use client';
 
 import { useState } from 'react';
 
@@ -7,21 +6,52 @@ const STORAGE_KEY = 'pv-age-gate-v2';
 const EXPIRY_DAYS = 30;
 const MIN_AGE = 18;
 
+const COOKIE_KEY = 'pv_age_gate_expires';
+
+const readCookieExpiry = (): number | null => {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie
+    .split('; ')
+    .find((part) => part.startsWith(`${COOKIE_KEY}=`));
+  if (!match) return null;
+  const value = Number(match.split('=')[1]);
+  return Number.isFinite(value) ? value : null;
+};
+
+const writeCookieExpiry = (expires: number) => {
+  if (typeof document === 'undefined') return;
+  const maxAge = EXPIRY_DAYS * 24 * 60 * 60;
+  document.cookie = `${COOKIE_KEY}=${expires}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+};
+
 const isVerified = (): boolean => {
   if (typeof window === 'undefined') return false;
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return false;
+
+  let localExpiry: number | null = null;
+
   try {
-    const { expires } = JSON.parse(raw) as { expires: number };
-    return Date.now() < expires;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { expires?: number };
+      localExpiry = typeof parsed.expires === 'number' ? parsed.expires : null;
+    }
   } catch {
-    return false;
+    localExpiry = null;
   }
+
+  const cookieExpiry = readCookieExpiry();
+  const expires = localExpiry ?? cookieExpiry;
+  return typeof expires === 'number' && Date.now() < expires;
 };
 
 const storeVerification = () => {
   const expires = Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ verified: true, expires }));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ verified: true, expires }));
+  } catch {
+    // Some browsers/extensions block localStorage. Cookie fallback still allows entry.
+  }
+  writeCookieExpiry(expires);
 };
 
 const calculateAge = (dob: string): number => {
@@ -38,7 +68,9 @@ export const AgeGateModal = () => {
   const [dob, setDob] = useState('');
   const [error, setError] = useState('');
 
-  const handleContinue = () => {
+  const handleContinue = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (!dob) {
       setError('Please enter your date of birth.');
       return;
@@ -64,10 +96,11 @@ export const AgeGateModal = () => {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/85 px-4 backdrop-blur-sm">
-      <div
+      <form
         role="dialog"
         aria-modal="true"
         aria-labelledby="age-gate-title"
+        onSubmit={handleContinue}
         className="w-full max-w-md rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-8 shadow-2xl"
       >
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)]">Age Verification Required</p>
@@ -98,12 +131,13 @@ export const AgeGateModal = () => {
 
         <div className="mt-6 flex gap-3">
           <button
-            onClick={handleContinue}
+            type="submit"
             className="flex-1 rounded-full bg-[var(--color-gold)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-ink)] transition hover:brightness-110"
           >
             Continue
           </button>
           <button
+            type="button"
             onClick={exit}
             className="flex-1 rounded-full border border-[var(--color-border)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-muted)] transition hover:border-[var(--color-gold)] hover:text-[var(--color-gold)]"
           >
@@ -114,7 +148,7 @@ export const AgeGateModal = () => {
         <p className="mt-4 text-center text-[10px] text-[var(--color-muted)]">
           Verification is stored locally for {EXPIRY_DAYS} days.
         </p>
-      </div>
+      </form>
     </div>
   );
 };
