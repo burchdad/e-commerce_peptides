@@ -1,8 +1,19 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 import { categories, faqs, legal, paymentMethods, products } from '../src/lib/data/site';
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL?.trim();
+
+if (!databaseUrl || !databaseUrl.startsWith('postgresql://')) {
+  throw new Error(
+    'DATABASE_URL must be a full PostgreSQL connection URL, for example: postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require',
+  );
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: databaseUrl }),
+});
 
 async function main() {
   for (const category of categories) {
