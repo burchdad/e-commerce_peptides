@@ -2,8 +2,11 @@ import Link from 'next/link';
 
 import { ProductGrid } from '@/components/commerce/product-grid';
 import { Hero } from '@/components/home/hero';
+import { AuthoritySection } from '@/components/sections/authority-section';
 import { KitShowcase } from '@/components/sections/KitShowcase';
 import { PremiumSpotlight } from '@/components/sections/premium-spotlight';
+import { TransparencySection } from '@/components/sections/transparency-section';
+import { TrustSignals } from '@/components/sections/trust-signals';
 import { DisclaimerNotice } from '@/components/ui/disclaimer-notice';
 import { FaqAccordion } from '@/components/ui/faq-accordion';
 import { categories, faqs } from '@/lib/data/site';
@@ -32,35 +35,11 @@ export default async function Home() {
         <ProductGrid products={featuredProducts} />
       </section>
 
-      <section className="premium-surface-soft relative overflow-hidden rounded-[1.7rem] p-7 lg:p-9">
-        <div className="peptide-overlay peptide-overlay-soft absolute inset-0" />
-        <div className="mb-6 flex items-center justify-between gap-5">
-          <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[var(--color-gold)]">Why Choose Us</p>
-            <h2 className="section-title mt-2">Built for Trust, Precision, and Clarity</h2>
-          </div>
-          <Link href="/research-disclaimer" className="hidden text-xs uppercase tracking-[0.14em] text-[var(--color-muted)] hover:text-[var(--color-text)] md:inline-block">
-            Review policies
-          </Link>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-2xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.2)] p-5">
-            <h3 className="font-serif text-2xl text-[var(--color-text)]">Documented Quality</h3>
-            <p className="mt-3 text-sm text-[var(--color-muted)]">Consistent lot handling, transparent inventory details, and premium packaging standards.</p>
-          </article>
-          <article className="rounded-2xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.2)] p-5">
-            <h3 className="font-serif text-2xl text-[var(--color-text)]">Research-Use Clarity</h3>
-            <p className="mt-3 text-sm text-[var(--color-muted)]">Every touchpoint reinforces laboratory-only positioning and legal acknowledgement flows.</p>
-          </article>
-          <article className="rounded-2xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.2)] p-5">
-            <h3 className="font-serif text-2xl text-[var(--color-text)]">Operational Ease</h3>
-            <p className="mt-3 text-sm text-[var(--color-muted)]">Fast catalog discovery, streamlined order requests, and clean accessories replenishment.</p>
-          </article>
-        </div>
-      </section>
+      <AuthoritySection />
 
       <KitShowcase />
+
+      <TransparencySection />
 
       <section className="premium-surface-deep relative overflow-hidden rounded-[1.7rem] p-7 lg:p-9">
         <div className="peptide-overlay peptide-overlay-soft absolute inset-0" />
@@ -119,14 +98,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="premium-surface-soft relative overflow-hidden rounded-[1.7rem] p-7 lg:p-9">
-        <div className="peptide-overlay peptide-overlay-soft absolute inset-0" />
-        <p className="text-xs uppercase tracking-[0.25em] text-[var(--color-gold)]">Customer Feedback</p>
-        <blockquote className="mt-3 max-w-3xl font-serif text-3xl leading-tight text-[var(--color-text)]">
-          "Fast processing and easy ordering. The confirmation and payment instructions were clear and professional."
-        </blockquote>
-        <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Verified Order Experience</p>
-      </section>
+      <TrustSignals />
 
       <section>
         <div className="mb-6">
