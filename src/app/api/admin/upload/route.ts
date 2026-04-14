@@ -3,6 +3,7 @@ import { join } from 'path';
 import { randomUUID } from 'crypto';
 
 import { NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
 import sharp from 'sharp';
 
 import { isAdminAuthenticated } from '@/lib/auth/admin';
@@ -131,6 +132,29 @@ export async function POST(request: Request) {
   }
 
   const filename = `${randomUUID()}.${outputExt}`;
+  const hasBlobToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+
+  if (hasBlobToken) {
+    try {
+      const blob = await put(`uploads/${filename}`, Buffer.from(outputBytes), {
+        access: 'public',
+        contentType: outputExt === 'png' ? 'image/png' : file.type,
+        addRandomSuffix: false,
+      });
+
+      return NextResponse.json({
+        url: blob.url,
+        transformed: shouldRenderBottle && outputExt === 'png',
+        renderStyle: shouldRenderBottle ? 'product-bottle' : 'plain',
+      });
+    } catch (err) {
+      console.error('Blob upload failed:', err);
+      return NextResponse.json(
+        { error: 'Failed to upload image to Blob storage.' },
+        { status: 500 },
+      );
+    }
+  }
 
   try {
     await mkdir(uploadDir, { recursive: true });
