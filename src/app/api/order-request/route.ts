@@ -19,6 +19,7 @@ const schema = z.object({
     informationAccurate: z.literal(true),
     termsAccepted: z.literal(true),
     verificationAccepted: z.literal(true),
+    ageConfirmed: z.literal(true),
   }),
   items: z
     .array(
