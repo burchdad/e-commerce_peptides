@@ -51,6 +51,17 @@ export const ProductCard = ({ product }: { product: Product }) => {
         ) : null}
       </div>
 
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          Only 8 left in stock
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          Ships 24–48 hrs
+        </span>
+      </div>
+
       <label className="mt-4 flex items-start gap-2 text-xs text-[var(--color-muted)]">
         <input
           checked={ack}

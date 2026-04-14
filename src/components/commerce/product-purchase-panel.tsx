@@ -36,6 +36,21 @@ export const ProductPurchasePanel = ({ product }: { product: Product }) => {
         {product.compareAtPrice ? <p className="pb-1 text-[var(--color-muted)] line-through">{currency(product.compareAtPrice)}</p> : null}
       </div>
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-red-700">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+          High demand product
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          Limited availability
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          Ships within 24–48 hrs
+        </span>
+      </div>
+
       <div className="mt-7">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Quantity</p>
         <div className="mt-3 inline-flex items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-1">

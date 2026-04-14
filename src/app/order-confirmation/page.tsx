@@ -13,9 +13,32 @@ export default async function OrderConfirmationPage({
 
   return (
     <div className="rounded-[1.8rem] border border-[var(--color-border)] bg-white p-8 shadow-[0_16px_40px_rgba(17,17,17,0.08)] md:p-10">
-      <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-gold)]">Order Request Received</p>
-      <h1 className="mt-3 font-serif text-4xl text-[var(--color-text)] md:text-5xl">Thank You</h1>
-      <p className="mt-4 max-w-2xl text-[var(--color-muted)]">Your order request has been received. Further instructions will be provided after review.</p>
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-lg text-emerald-600">✓</span>
+        <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-gold)]">Order Request Received</p>
+      </div>
+      <h1 className="mt-3 font-serif text-4xl text-[var(--color-text)] md:text-5xl">You&apos;re all set.</h1>
+      <p className="mt-4 max-w-2xl text-[var(--color-muted)]">Your order has been received. Check your email — we&apos;ll send you full payment instructions and guide you through every step.</p>
+
+      <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-6">
+        <h2 className="font-serif text-xl text-[var(--color-text)]">What happens next</h2>
+        <ol className="mt-5 space-y-5">
+          {[
+            { step: '01', heading: 'Order confirmed', body: 'We have your order details and are reviewing your request now.' },
+            { step: '02', heading: 'Check your email', body: 'Payment instructions will be sent to your inbox — usually within a few hours.' },
+            { step: '03', heading: 'Complete payment', body: 'Follow the secure instructions to send payment via your chosen method.' },
+            { step: '04', heading: 'Your order ships', body: 'Once payment is confirmed, your order is prepared and dispatched within 24–48 hours.' },
+          ].map(({ step, heading, body }) => (
+            <li key={step} className="flex gap-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-gold)] text-xs font-bold text-white">{step}</span>
+              <div>
+                <p className="font-semibold text-[var(--color-text)]">{heading}</p>
+                <p className="mt-0.5 text-sm text-[var(--color-muted)]">{body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-[1fr_1.2fr]">
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-5">
