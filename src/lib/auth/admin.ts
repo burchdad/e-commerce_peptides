@@ -6,7 +6,7 @@ const SESSION_HOURS = 8;
 
 const getSecret = () => {
   if (process.env.ADMIN_AUTH_SECRET) {
-    return process.env.ADMIN_AUTH_SECRET;
+    return process.env.ADMIN_AUTH_SECRET.trim();
   }
 
   if (process.env.NODE_ENV === 'production') {
@@ -16,7 +16,10 @@ const getSecret = () => {
   return 'dev_admin_secret_change_me';
 };
 
-const getPassword = () => process.env.ADMIN_PASSWORD;
+const getPassword = () => {
+  const pwd = process.env.ADMIN_PASSWORD;
+  return pwd ? pwd.trim() : undefined;
+};
 
 type SessionPayload = {
   sub: 'admin';
