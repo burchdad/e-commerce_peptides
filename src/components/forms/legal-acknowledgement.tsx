@@ -17,7 +17,11 @@ export const LegalAcknowledgement = ({ value, onChange }: Props) => {
       <p className="mb-4 font-serif text-2xl text-[var(--color-text)]">Required Acknowledgements</p>
       <label className="mb-4 flex gap-3 leading-6"><input className="mt-1 h-4 w-4 accent-[var(--color-gold)]" type="checkbox" checked={value.informationAccurate} onChange={() => update('informationAccurate')} /> I confirm all information provided is accurate.</label>
       <label className="mb-4 flex gap-3 leading-6"><input className="mt-1 h-4 w-4 accent-[var(--color-gold)]" type="checkbox" checked={value.termsAccepted} onChange={() => update('termsAccepted')} /> I agree to the terms and conditions.</label>
-      <label className="flex gap-3 leading-6"><input className="mt-1 h-4 w-4 accent-[var(--color-gold)]" type="checkbox" checked={value.verificationAccepted} onChange={() => update('verificationAccepted')} /> I understand this order may require verification.</label>
+      <label className="mb-4 flex gap-3 leading-6"><input className="mt-1 h-4 w-4 accent-[var(--color-gold)]" type="checkbox" checked={value.verificationAccepted} onChange={() => update('verificationAccepted')} /> I understand this order may require verification.</label>
+      <label className="flex gap-3 leading-6 rounded-xl border border-[rgba(212,175,55,0.3)] bg-[rgba(212,175,55,0.07)] p-3">
+        <input className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-gold)]" type="checkbox" checked={value.ageConfirmed} onChange={() => update('ageConfirmed')} />
+        <span>I confirm I am 18 years of age or older and am purchasing for lawful research use only.</span>
+      </label>
     </div>
   );
 };

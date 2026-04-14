@@ -65,6 +65,7 @@ export type OrderAcknowledgements = {
   informationAccurate: boolean;
   termsAccepted: boolean;
   verificationAccepted: boolean;
+  ageConfirmed: boolean;
 };
 
 export type OrderWorkflowStatus =

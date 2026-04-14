@@ -9,6 +9,7 @@ const defaultAcknowledgements: OrderAcknowledgements = {
   informationAccurate: false,
   termsAccepted: false,
   verificationAccepted: false,
+  ageConfirmed: false,
 };
 
 export const RegistrationForm = () => {

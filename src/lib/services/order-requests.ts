@@ -56,6 +56,7 @@ const extractAcknowledgements = (value: unknown): OrderAcknowledgements => {
     informationAccurate: source.informationAccurate === true,
     termsAccepted: source.termsAccepted === true,
     verificationAccepted: source.verificationAccepted === true,
+    ageConfirmed: source.ageConfirmed === true,
   };
 };
 
