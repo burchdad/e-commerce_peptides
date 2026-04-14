@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { paymentMethods } from '@/lib/data/site';
-import { hasDatabaseUrl, prisma } from '@/lib/db';
+import { sendAdminNotification, sendOrderReceivedEmail } from '@/lib/services/order-emails';
+import { createOrderRequestRecord } from '@/lib/services/order-requests';
 
 const schema = z.object({
   customerName: z.string().min(2),
@@ -16,10 +16,9 @@ const schema = z.object({
   notes: z.string().optional(),
   paymentMethodId: z.string().min(2),
   acknowledgements: z.object({
-    age21Plus: z.literal(true),
-    researchUseOnly: z.literal(true),
-    noMedicalRelationship: z.literal(true),
+    informationAccurate: z.literal(true),
     termsAccepted: z.literal(true),
+    verificationAccepted: z.literal(true),
   }),
   items: z
     .array(
@@ -43,42 +42,19 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
-  const orderReference = `REQ-${Date.now()}`;
-  const selectedPayment = paymentMethods.find((method) => method.id === data.paymentMethodId);
 
-  if (hasDatabaseUrl) {
-    try {
-      await prisma!.orderRequest.create({
-        data: {
-          orderReference,
-          customerName: data.customerName,
-          email: data.email,
-          phone: data.phone,
-          shippingAddress: data.shippingAddress,
-          city: data.city,
-          state: data.state,
-          postalCode: data.postalCode,
-          country: data.country,
-          notes: data.notes,
-          paymentMethodId: data.paymentMethodId,
-          paymentMethodLabel: selectedPayment?.label ?? data.paymentMethodId,
-          acknowledgements: data.acknowledgements,
-          items: {
-            create: data.items.map((item) => ({
-              productId: item.productId,
-              productName: item.productName,
-              sku: item.sku,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-            })),
-          },
-        },
-      });
-    } catch {
-      return NextResponse.json({ error: 'Unable to persist order request.' }, { status: 500 });
-    }
+  try {
+    const order = await createOrderRequestRecord(data);
+    await Promise.all([sendOrderReceivedEmail(order), sendAdminNotification(order, 'order-received')]);
+
+    return NextResponse.json(
+      {
+        success: true,
+        orderReference: order.orderReference,
+      },
+      { status: 200 },
+    );
+  } catch {
+    return NextResponse.json({ error: 'Unable to create order request.' }, { status: 500 });
   }
-
-  // TODO: Trigger transactional email notifications for customer and admin inbox.
-  return NextResponse.json({ success: true, orderReference }, { status: 200 });
 }

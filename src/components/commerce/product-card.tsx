@@ -58,19 +58,20 @@ export const ProductCard = ({ product }: { product: Product }) => {
           type="checkbox"
           className="mt-0.5"
         />
-        I understand this item is listed for research use only.
+        I confirm I meet all required conditions and accept the terms of purchase.
       </label>
+      {!ack ? <p className="mt-2 text-xs text-[var(--color-muted)]">Accept the required terms to enable add to cart.</p> : null}
 
       <div className="mt-4 flex gap-3">
         <button
-          className="flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-2 text-sm uppercase tracking-[0.14em] text-[var(--color-text)] transition hover:border-[var(--color-gold)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm uppercase tracking-[0.14em] text-[var(--color-text)] transition hover:border-[var(--color-gold)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!ack}
           onClick={() => addItem(product.id, 1)}
         >
           Add to Cart
         </button>
         <Link
-          className="rounded-full bg-[var(--color-gold)] px-4 py-2 text-sm uppercase tracking-[0.14em] text-[var(--color-text)]"
+          className="rounded-xl bg-[var(--color-gold)] px-4 py-3 text-sm uppercase tracking-[0.14em] text-[var(--color-text)]"
           href={`/product/${product.slug}`}
         >
           View

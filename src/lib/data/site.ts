@@ -1,11 +1,12 @@
 import type { Category, FaqItem, LegalContent, PaymentMethod, Product } from '@/lib/types';
 import { productImageMap } from '@/lib/config/images';
+import { siteConfig } from '@/lib/config/site-config';
 
 export const brand = {
-  name: 'Noir Axis Research',
-  email: 'support@noiraxisresearch.com',
-  phone: '+1 (800) 555-0199',
-  address: '138 Meridian Loft, Suite 200, Austin, TX 78701',
+  name: siteConfig.brandName,
+  email: siteConfig.supportEmail,
+  phone: siteConfig.supportPhone,
+  address: siteConfig.supportAddress,
 };
 
 export const categories: Category[] = [
@@ -490,35 +491,28 @@ export const paymentMethods: PaymentMethod[] = [
   {
     id: 'invoice-request',
     label: 'Invoice Request',
-    description: 'Receive an invoice with payment steps after order review.',
+    description: 'Receive a formal invoice or payable request after review.',
     enabled: true,
     mode: 'invoice',
   },
   {
-    id: 'manual-zelle',
-    label: 'Zelle',
-    description: 'Manual payment instructions are sent after order approval.',
+    id: 'external-payment-method',
+    label: 'External Payment Method',
+    description: 'Provide a preferred external payment option for follow-up instructions.',
     enabled: true,
     mode: 'manual',
   },
   {
-    id: 'manual-cashapp',
-    label: 'Cash App',
-    description: 'Manual payment instructions are sent after order approval.',
+    id: 'manual-payment-instructions',
+    label: 'Manual Payment Instructions',
+    description: 'Receive direct payment instructions after order review and confirmation.',
     enabled: true,
     mode: 'manual',
   },
   {
-    id: 'manual-paypal',
-    label: 'PayPal',
-    description: 'Manual payment instructions are sent after order approval.',
-    enabled: true,
-    mode: 'manual',
-  },
-  {
-    id: 'apple-pay-placeholder',
-    label: 'Apple Pay (Coming Soon)',
-    description: 'Placeholder for future integrated processor enablement.',
+    id: 'processor-placeholder',
+    label: 'Additional Processor (Coming Soon)',
+    description: 'Reserved for future integrations without active checkout processing.',
     enabled: false,
     mode: 'placeholder',
   },

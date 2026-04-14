@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   }
 
   const acknowledgements = body.acknowledgements ?? {};
-  const allAcknowledged = ['age21Plus', 'researchUseOnly', 'noMedicalRelationship', 'termsAccepted'].every(
+  const allAcknowledged = ['informationAccurate', 'termsAccepted', 'verificationAccepted'].every(
     (key) => acknowledgements[key] === true,
   );
 

@@ -4,14 +4,15 @@ import { useState } from 'react';
 
 type DashboardProps = {
   dbEnabled: boolean;
+  isClientMode: boolean;
   categories: Array<{ slug: string; name: string }>;
   products: Array<{ id: string; name: string; slug: string; category: string; price: number; stockQuantity: number; isActive: boolean }>;
   faqs: Array<{ id: string; question: string; answer: string }>;
   legalPages: Array<{ id: string; slug: string; title: string; intro: string }>;
-  orders: Array<{ id: string; orderReference: string; email: string; status: string; paymentStatus: string; createdAt: string }>;
+  orders: Array<{ id: string; orderReference: string; email: string; status: string; createdAt: string }>;
 };
 
-export const AdminDashboard = ({ dbEnabled, categories, products, faqs, legalPages, orders }: DashboardProps) => {
+export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, faqs, legalPages, orders }: DashboardProps) => {
   const [statusMessage, setStatusMessage] = useState('');
 
   const submitJson = async (url: string, method: 'POST' | 'PATCH', payload: Record<string, unknown>) => {
@@ -49,8 +50,8 @@ export const AdminDashboard = ({ dbEnabled, categories, products, faqs, legalPag
     setStatusMessage('Legal page updated. Refresh to view latest records.');
   };
 
-  const onUpdateOrder = async (orderId: string, status: string, paymentStatus: string) => {
-    await submitJson(`/api/admin/orders/${orderId}`, 'PATCH', { status, paymentStatus });
+  const onUpdateOrder = async (orderId: string, status: string) => {
+    await submitJson(`/api/admin/orders/${orderId}`, 'PATCH', { status });
     setStatusMessage('Order statuses updated. Refresh to view latest records.');
   };
 
@@ -62,9 +63,11 @@ export const AdminDashboard = ({ dbEnabled, categories, products, faqs, legalPag
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-4">
-        <p className="text-sm text-[var(--color-sand)]">
-          {dbEnabled ? 'Database mode enabled: admin writes persist to PostgreSQL.' : 'Seed fallback mode: configure DATABASE_URL for persistent writes.'}
-        </p>
+        {!isClientMode ? (
+          <p className="text-sm text-[var(--color-sand)]">
+            {dbEnabled ? 'Database mode enabled: admin writes persist to PostgreSQL.' : 'Seed fallback mode: configure DATABASE_URL for persistent writes.'}
+          </p>
+        ) : <p className="text-sm text-[var(--color-sand)]">Client handoff mode enabled.</p>}
         <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={onLogout}>
           Logout
         </button>
@@ -72,7 +75,7 @@ export const AdminDashboard = ({ dbEnabled, categories, products, faqs, legalPag
 
       {statusMessage ? <p className="text-sm text-[var(--color-sand)]">{statusMessage}</p> : null}
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      {!isClientMode ? <section className="grid gap-4 lg:grid-cols-2">
         <form
           className="space-y-3 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5"
           action={async (formData) => {
@@ -126,9 +129,9 @@ export const AdminDashboard = ({ dbEnabled, categories, products, faqs, legalPag
             </ul>
           </div>
         </form>
-      </section>
+      </section> : null}
 
-      <form
+      {!isClientMode ? <form
         className="space-y-3 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5"
         action={async (formData) => {
           try {
@@ -147,7 +150,7 @@ export const AdminDashboard = ({ dbEnabled, categories, products, faqs, legalPag
         <input className="input" name="title" placeholder="Title" required />
         <textarea className="input min-h-20" name="intro" placeholder="Intro" required />
         <button className="rounded-full bg-[var(--color-gold)] px-6 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-ink)]" type="submit">Save Legal Page</button>
-      </form>
+      </form> : null}
 
       <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
         <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Order Request Statuses</h2>
@@ -162,7 +165,7 @@ export const AdminDashboard = ({ dbEnabled, categories, products, faqs, legalPag
         )}
       </section>
 
-      <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+      {!isClientMode ? <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
         <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Current Product Snapshot</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full text-left text-sm text-[var(--color-sand)]">
@@ -188,23 +191,21 @@ export const AdminDashboard = ({ dbEnabled, categories, products, faqs, legalPag
             </tbody>
           </table>
         </div>
-      </section>
+      </section> : null}
     </div>
   );
 };
 
-const statusOptions = ['PENDING', 'REVIEWED', 'INVOICED', 'PAID', 'FULFILLED', 'CANCELLED'];
-const paymentStatusOptions = ['UNPAID', 'INVOICED', 'PARTIAL', 'PAID', 'VOID'];
+const statusOptions = ['pending', 'reviewing', 'approved', 'payment-sent', 'completed', 'cancelled'];
 
 const OrderRow = ({
   order,
   onUpdate,
 }: {
-  order: { id: string; orderReference: string; email: string; status: string; paymentStatus: string; createdAt: string };
-  onUpdate: (orderId: string, status: string, paymentStatus: string) => Promise<void>;
+  order: { id: string; orderReference: string; email: string; status: string; createdAt: string };
+  onUpdate: (orderId: string, status: string) => Promise<void>;
 }) => {
   const [status, setStatus] = useState(order.status);
-  const [paymentStatus, setPaymentStatus] = useState(order.paymentStatus);
 
   return (
     <div className="rounded-lg border border-[var(--color-gold-soft)] p-3">
@@ -216,12 +217,7 @@ const OrderRow = ({
             <option key={option} value={option}>{option}</option>
           ))}
         </select>
-        <select className="input max-w-[190px]" value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)}>
-          {paymentStatusOptions.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-        <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={() => onUpdate(order.id, status, paymentStatus)}>
+        <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={() => onUpdate(order.id, status)}>
           Update
         </button>
       </div>

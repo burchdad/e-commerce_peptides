@@ -1,165 +1,100 @@
-# Noir Axis Research MVP
+# E-Commerce SaaS Template
 
-Production-ready MVP storefront for a premium, research-positioned peptide business.
+Reusable, configurable Next.js storefront template with order workflow operations, admin controls, and white-label deployment support.
 
-## Stack
+## What This Template Provides
 
-- Next.js 16 (App Router)
-- TypeScript
-- Tailwind CSS 4
-- Prisma ORM 7 + PostgreSQL adapter
-- Zod validation for server-side form/API validation
-- Component-driven architecture
-- Config-based payment method abstraction
-- Secure admin auth session flow (cookie-based)
-- Admin CRUD API layer for products, FAQs, legal pages, order statuses
+- White-label ready brand and theme configuration
+- Configurable business behavior flags
+- Order request intake and admin order workflow lifecycle
+- Payment instruction workflow with environment-based handles
+- Conversion and revenue tracking in admin orders workspace
+- Client-handoff mode for simplified admin experience
 
-## Implemented Features
+## Core Configuration Files
 
-- Luxury storefront UI system with art deco-inspired visual language
-- Age gate modal with localStorage persistence
-- Research-use disclaimer presentation across key buying surfaces
-- Catalog architecture with categories, products, attributes, badges, featured products
-- Seed data for GLP products and accessories
-- Product detail pages with legal context near purchase action
-- Complimentary kit spotlight with dedicated page and reusable contents component
-- Accessories section for standalone kit item sales
-- Peptide reconstitution calculator (math framing only)
-- New customer registration flow with legal acknowledgement capture
-- Cart state management with localStorage persistence
-- Checkout/order request flow with modular payment method selector
-- Legal pages (Research Disclaimer, Terms, Privacy)
-- Contact form and FAQ experience
-- Account/order lookup MVP placeholder route
-- Admin login and protected dashboard
-- Prisma schema for categories, products, FAQs, legal pages, payment config, orders
-- DB-backed order request persistence (with safe fallback when DB is not configured)
+- `src/lib/config/site-config.ts`: brand name, support contact, domain, currency, logos, theme colors
+- `src/lib/config/business-config.ts`: order review/manual payments/follow-ups/client mode flags
+- `src/lib/config/payment-profiles.ts`: payment instruction generation with env-backed handles
 
-## Route Map
+## Environment Setup
 
-- `/`
-- `/shop`
-- `/shop/[category]`
-- `/product/[slug]`
-- `/complimentary-kit`
-- `/accessories`
-- `/calculator`
-- `/register`
-- `/faq`
-- `/research-disclaimer`
-- `/terms`
-- `/privacy`
-- `/contact`
-- `/cart`
-- `/checkout`
-- `/order-confirmation`
-- `/account`
-- `/admin`
-- `/admin/login`
-- `/api/admin/login`
-- `/api/admin/logout`
-- `/api/admin/products`
-- `/api/admin/products/[id]`
-- `/api/admin/faqs`
-- `/api/admin/faqs/[id]`
-- `/api/admin/legal-pages`
-- `/api/admin/legal-pages/[id]`
-- `/api/admin/orders/[id]`
-- `/api/order-request`
-- `/api/register`
-- `/api/contact`
+1. Copy the example file:
 
-## Project Structure
-
-```text
-src/
-	app/
-		(routes and api handlers)
-	components/
-		admin/
-		commerce/
-		forms/
-		home/
-		layout/
-		ui/
-	context/
-		cart-context.tsx
-	lib/
-		data/site.ts
-		types.ts
-		utils/
+```bash
+cp .env.example .env.local
 ```
 
-## Local Setup
+2. Update required values:
 
-1. Install dependencies:
+- `ADMIN_PASSWORD`
+- `ADMIN_AUTH_SECRET`
+- `PAYMENT_HANDLES`
+- `EMAIL_FROM`
+
+3. Update branding values for each client deployment:
+
+- `NEXT_PUBLIC_BRAND_NAME`
+- `NEXT_PUBLIC_DOMAIN`
+- `NEXT_PUBLIC_SUPPORT_*`
+- `NEXT_PUBLIC_LOGO_*`
+- `NEXT_PUBLIC_THEME_*`
+
+## Run Locally
 
 ```bash
 npm install
-```
-
-2. Start development server:
-
-```bash
 npm run dev
 ```
 
-3. Run quality checks:
+Open http://localhost:3000
+
+## Validate Build
 
 ```bash
-npm run lint
 npm run build
-npm run prisma:generate
 ```
 
-## Environment Variables
+## Database (Optional)
 
-Create `.env.local` (current MVP works without required runtime secrets, but these keys are prepared for next integrations):
-
-```bash
-NEXT_PUBLIC_SITE_NAME="Noir Axis Research"
-NEXT_PUBLIC_SUPPORT_EMAIL="support@noiraxisresearch.com"
-NEXT_PUBLIC_SUPPORT_PHONE="+1 (800) 555-0199"
-
-# Future persistence and auth
-DATABASE_URL="postgresql://user:password@localhost:5432/noir_axis"
-ADMIN_AUTH_SECRET="replace_me"
-ADMIN_PASSWORD="replace_me"
-
-# Future email integrations
-EMAIL_FROM="orders@noiraxisresearch.com"
-EMAIL_ADMIN_TO="ops@noiraxisresearch.com"
-RESEND_API_KEY=""
-
-# Future payment integrations
-PAYMENT_PROVIDER_MODE="manual"
-PAYMENT_WEBHOOK_SECRET=""
-```
-
-## Prisma Commands
+If you want persistent storage, set `DATABASE_URL` and run:
 
 ```bash
 npm run prisma:generate
 npm run prisma:push
-npm run db:seed
 ```
 
-## Payment Integration TODOs
+Without `DATABASE_URL`, the app falls back to in-memory behavior for order records.
 
-- Add DB-backed payment method config table and admin controls.
-- Replace checkout placeholders with provider adapters (`invoice`, `zelle`, `cashapp`, `paypal`, future processor SDKs).
-- Persist payment and invoice statuses per order request.
-- Add webhook handlers for future real-time processor events.
-- Implement per-method instruction templates and automated emails.
+## Client Handoff Mode
 
-## Operational TODOs
+Set:
 
-- Add role-based admin users (currently single shared admin password).
-- Add migration history and deployment migration workflow for production environments.
-- Wire transactional email service for:
-	- order request received
-	- admin new order alert
-	- registration received
-	- contact message received
-- Add image assets and media management strategy (S3/Supabase Storage).
-- Add SEO schema markup per product and category.
+```bash
+NEXT_PUBLIC_CLIENT_MODE="true"
+```
+
+When enabled:
+
+- Developer/debug-oriented admin details are hidden
+- Admin dashboard is simplified for client operation
+
+## Deploying
+
+The app can be deployed on any Next.js-compatible platform (Vercel, container, VM).
+
+Minimum deployment steps:
+
+1. Provision environment variables from `.env.example`
+2. Set strong values for auth and payment/email fields
+3. Configure `DATABASE_URL` if persistence is required
+4. Run build command: `npm run build`
+5. Start command: `npm run start`
+
+## Productization Checklist
+
+- Replace logos under `public/images/brand`
+- Adjust theme via `NEXT_PUBLIC_THEME_*`
+- Set client support contact details
+- Configure payment handles per client
+- Set `NEXT_PUBLIC_CLIENT_MODE` as needed

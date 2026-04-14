@@ -61,6 +61,31 @@ export type PaymentMethod = {
   mode: 'manual' | 'invoice' | 'placeholder';
 };
 
+export type OrderAcknowledgements = {
+  informationAccurate: boolean;
+  termsAccepted: boolean;
+  verificationAccepted: boolean;
+};
+
+export type OrderWorkflowStatus =
+  | 'pending'
+  | 'reviewing'
+  | 'approved'
+  | 'payment-sent'
+  | 'completed'
+  | 'cancelled';
+
+export type OrderTimeline = {
+  createdAt: string;
+  reviewedAt?: string;
+  approvedAt?: string;
+  paymentSentAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+};
+
+export type ConversionStatus = 'unpaid' | 'paid';
+
 export type OrderRequest = {
   customerName: string;
   email: string;
@@ -72,12 +97,7 @@ export type OrderRequest = {
   country: string;
   paymentMethodId: string;
   notes?: string;
-  acknowledgements: {
-    age21Plus: boolean;
-    researchUseOnly: boolean;
-    noMedicalRelationship: boolean;
-    termsAccepted: boolean;
-  };
+  acknowledgements: OrderAcknowledgements;
   items: Array<{
     productId?: string;
     productName: string;
@@ -85,4 +105,19 @@ export type OrderRequest = {
     unitPrice: number;
     quantity: number;
   }>;
+};
+
+export type StoredOrderRequest = OrderRequest & {
+  id: string;
+  orderReference: string;
+  paymentMethodLabel: string;
+  status: OrderWorkflowStatus;
+  conversionStatus: ConversionStatus;
+  paymentInstructions?: string;
+  paymentLink?: string;
+  followUpAt?: string;
+  needsFollowUp: boolean;
+  timeline: OrderTimeline;
+  createdAt: string;
+  updatedAt: string;
 };

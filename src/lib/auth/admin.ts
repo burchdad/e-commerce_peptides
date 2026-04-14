@@ -4,8 +4,19 @@ import { cookies } from 'next/headers';
 const COOKIE_NAME = 'nar_admin_session';
 const SESSION_HOURS = 8;
 
-const getSecret = () => process.env.ADMIN_AUTH_SECRET || 'dev_admin_secret_change_me';
-const getPassword = () => process.env.ADMIN_PASSWORD || 'admin12345';
+const getSecret = () => {
+  if (process.env.ADMIN_AUTH_SECRET) {
+    return process.env.ADMIN_AUTH_SECRET;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ADMIN_AUTH_SECRET is required in production.');
+  }
+
+  return 'dev_admin_secret_change_me';
+};
+
+const getPassword = () => process.env.ADMIN_PASSWORD;
 
 type SessionPayload = {
   sub: 'admin';
@@ -31,7 +42,13 @@ const verifyToken = (token: string): boolean => {
 };
 
 export const validateAdminPassword = (password: string) => {
-  return password === getPassword();
+  const configuredPassword = getPassword();
+
+  if (!configuredPassword) {
+    return false;
+  }
+
+  return password === configuredPassword;
 };
 
 export const createAdminSessionToken = () => {

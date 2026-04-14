@@ -2,11 +2,19 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { isAdminAuthenticated } from '@/lib/auth/admin';
-import { updateOrderStatuses } from '@/lib/services/admin-data';
+import {
+  sendAdminNotification,
+  sendOrderApprovedEmail,
+  sendOrderCompletedEmail,
+  sendPaymentInstructionsEmail,
+} from '@/lib/services/order-emails';
+import { updateOrderWorkflowRecord } from '@/lib/services/order-requests';
 
 const schema = z.object({
-  status: z.enum(['PENDING', 'REVIEWED', 'INVOICED', 'PAID', 'FULFILLED', 'CANCELLED']),
-  paymentStatus: z.enum(['UNPAID', 'INVOICED', 'PARTIAL', 'PAID', 'VOID']),
+  status: z.enum(['pending', 'reviewing', 'approved', 'payment-sent', 'completed', 'cancelled']),
+  conversionStatus: z.enum(['unpaid', 'paid']).optional(),
+  paymentInstructions: z.string().optional(),
+  paymentLink: z.string().url().optional().or(z.literal('')),
 });
 
 export async function PATCH(
@@ -24,10 +32,34 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const result = await updateOrderStatuses(id, parsed.data.status, parsed.data.paymentStatus);
-  if (!result.ok) {
-    return NextResponse.json({ error: result.message }, { status: 400 });
-  }
 
-  return NextResponse.json({ success: true });
+  try {
+    const updated = await updateOrderWorkflowRecord(id, {
+      status: parsed.data.status,
+      conversionStatus: parsed.data.conversionStatus,
+      paymentInstructions: parsed.data.paymentInstructions,
+      paymentLink: parsed.data.paymentLink || undefined,
+    });
+
+    if (updated.status === 'approved') {
+      await sendOrderApprovedEmail(updated);
+    }
+
+    if (updated.status === 'payment-sent') {
+      await sendPaymentInstructionsEmail(updated);
+    }
+
+    if (updated.status === 'completed') {
+      await sendOrderCompletedEmail(updated);
+    }
+
+    await sendAdminNotification(updated, `order-${updated.status}`);
+
+    return NextResponse.json({ success: true, order: updated });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unable to update order.' },
+      { status: 400 },
+    );
+  }
 }

@@ -1,4 +1,5 @@
 import type { ProductImageMap } from '@/lib/types';
+import { siteConfig } from '@/lib/config/site-config';
 
 export const siteImages = {
   hero: {
@@ -7,8 +8,8 @@ export const siteImages = {
     mobile: '/images/hero/banner-mobile.png',
   },
   brand: {
-    logo: '/images/brand/logo-primary.png',
-    logoAlt: '/images/brand/logo-alt.png',
+    logo: siteConfig.logos.primary,
+    logoAlt: siteConfig.logos.alternate,
   },
   kit: {
     main: '/images/kit/kit-main.png',
@@ -83,4 +84,4 @@ export const categoryBannerImages: Record<string, string> = {
   accessories: '/images/kit/kit-secondary.png',
 };
 
-export const fallbackImage = '/images/brand/logo-alt.png';
+export const fallbackImage = siteConfig.logos.alternate;

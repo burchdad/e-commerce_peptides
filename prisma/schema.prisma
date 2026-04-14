@@ -8,10 +8,10 @@ datasource db {
 
 enum OrderStatus {
   PENDING
-  REVIEWED
-  INVOICED
-  PAID
-  FULFILLED
+  REVIEWING
+  APPROVED
+  PAYMENT_SENT
+  COMPLETED
   CANCELLED
 }
 
@@ -112,11 +112,18 @@ model OrderRequest {
   notes                 String?
   paymentMethodId       String
   paymentMethodLabel    String
+  paymentInstructions   String?
+  paymentLink           String?
   acknowledgements      Json
   status                OrderStatus   @default(PENDING)
   paymentStatus         PaymentStatus @default(UNPAID)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
+  reviewedAt            DateTime?
+  approvedAt            DateTime?
+  paymentSentAt         DateTime?
+  completedAt           DateTime?
+  cancelledAt           DateTime?
   items                 OrderItem[]
 }
 

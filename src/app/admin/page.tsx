@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { isAdminAuthenticated } from '@/lib/auth/admin';
+import { businessConfig } from '@/lib/config/business-config';
 import { categories } from '@/lib/data/site';
 import { hasDatabaseUrl } from '@/lib/db';
 import {
@@ -30,11 +31,15 @@ export default async function AdminPage() {
     <div className="space-y-6">
       <h1 className="section-title">Admin Dashboard</h1>
       <p className="max-w-2xl text-[var(--color-sand)]">
-        Manage product catalog, FAQs, legal text, and order statuses through a secure admin workflow.
+        Manage catalog, legal content, and orders through a configurable admin workflow.
       </p>
+      <div>
+        <a href="/admin/orders" className="btn-secondary">Open Orders Workspace</a>
+      </div>
       <AdminDashboard
         categories={categories.map((category) => ({ slug: category.slug, name: category.name }))}
         dbEnabled={hasDatabaseUrl}
+        isClientMode={businessConfig.isClientMode}
         faqs={faqs.map((faq) => ({ id: (faq as { id?: string }).id ?? faq.question, question: faq.question, answer: faq.answer }))}
         legalPages={legalPages.map((page) => ({
           id: String((page as { id?: string }).id ?? page.slug),
@@ -46,8 +51,18 @@ export default async function AdminPage() {
           id: order.id,
           orderReference: order.orderReference,
           email: order.email,
-          status: order.status,
-          paymentStatus: order.paymentStatus,
+          status:
+            order.status === 'PENDING'
+              ? 'pending'
+              : order.status === 'REVIEWED'
+                ? 'reviewing'
+                : order.status === 'INVOICED'
+                  ? 'payment-sent'
+                  : order.status === 'FULFILLED'
+                    ? 'completed'
+                    : order.status === 'CANCELLED'
+                      ? 'cancelled'
+                      : 'approved',
           createdAt: order.createdAt.toISOString(),
         }))}
         products={products.map((product) => ({

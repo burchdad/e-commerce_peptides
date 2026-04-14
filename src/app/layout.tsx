@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Manrope } from 'next/font/google';
+import type { CSSProperties } from 'react';
 
 import { SiteShell } from '@/components/layout/site-shell';
+import { siteConfig } from '@/lib/config/site-config';
 
 import './globals.css';
 
@@ -18,12 +20,11 @@ const sans = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: 'Noir Axis Research | Premium Research Peptides',
-  description:
-    'Premium research-use peptide catalog with complimentary kit inclusion and refined order-request checkout experience.',
+  title: `${siteConfig.brandName} | Premium Research Storefront`,
+  description: `${siteConfig.brandName} configurable research storefront and order workflow template.`,
   openGraph: {
-    title: 'Noir Axis Research',
-    description: 'Luxury research peptide storefront and accessories catalog.',
+    title: siteConfig.brandName,
+    description: `${siteConfig.brandName} configurable research storefront and accessories catalog.`,
     type: 'website',
   },
 };
@@ -33,9 +34,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const themeStyle = {
+    '--color-bg': siteConfig.theme.bg,
+    '--color-bg-soft': siteConfig.theme.bgSoft,
+    '--color-text': siteConfig.theme.text,
+    '--color-muted': siteConfig.theme.muted,
+    '--color-gold': siteConfig.theme.accent,
+  } as CSSProperties;
+
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable} h-full`}>
-      <body className="min-h-full bg-[var(--color-bg)] text-[var(--color-text)]">
+      <body className="min-h-full bg-[var(--color-bg)] text-[var(--color-text)]" style={themeStyle}>
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

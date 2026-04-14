@@ -3,12 +3,12 @@
 import { FormEvent, useState } from 'react';
 
 import { LegalAcknowledgement } from '@/components/forms/legal-acknowledgement';
+import type { OrderAcknowledgements } from '@/lib/types';
 
-const defaultAcknowledgements = {
-  age21Plus: false,
-  researchUseOnly: false,
-  noMedicalRelationship: false,
+const defaultAcknowledgements: OrderAcknowledgements = {
+  informationAccurate: false,
   termsAccepted: false,
+  verificationAccepted: false,
 };
 
 export const RegistrationForm = () => {
@@ -54,10 +54,10 @@ export const RegistrationForm = () => {
       </div>
       <textarea className="input min-h-24" name="address" placeholder="Billing / Shipping Address" required />
       <LegalAcknowledgement value={acknowledgements} onChange={setAcknowledgements} />
-      <button className="rounded-full bg-[var(--color-gold)] px-8 py-3 text-sm uppercase tracking-[0.16em] text-[var(--color-ink)] disabled:opacity-60" disabled={submitting} type="submit">
+      <button className="btn-primary" disabled={submitting} type="submit">
         {submitting ? 'Submitting...' : 'Create Registration'}
       </button>
-      {message ? <p className="text-sm text-[var(--color-sand)]">{message}</p> : null}
+      {message ? <p className="text-sm text-[var(--color-muted)]">{message}</p> : null}
     </form>
   );
 };

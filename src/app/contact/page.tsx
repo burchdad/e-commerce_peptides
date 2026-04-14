@@ -1,5 +1,5 @@
 import { ContactForm } from '@/components/forms/contact-form';
-import { brand } from '@/lib/data/site';
+import { siteConfig } from '@/lib/config/site-config';
 
 export default function ContactPage() {
   return (
@@ -8,9 +8,9 @@ export default function ContactPage() {
         <h1 className="section-title">Contact</h1>
         <p className="mt-3 text-[var(--color-sand)]">Reach the operations team for order and account inquiries.</p>
         <ul className="mt-6 space-y-2 text-sm text-[var(--color-sand)]">
-          <li>{brand.email}</li>
-          <li>{brand.phone}</li>
-          <li>{brand.address}</li>
+          <li>{siteConfig.supportEmail}</li>
+          <li>{siteConfig.supportPhone}</li>
+          <li>{siteConfig.supportAddress}</li>
         </ul>
       </aside>
       <ContactForm />
