@@ -10,7 +10,7 @@ export const PaymentMethodSelector = ({
   onSelect: (id: string) => void;
 }) => {
   return (
-    <div className="rounded-[1.4rem] border border-[var(--color-border)] bg-white p-6 shadow-[0_10px_24px_rgba(17,17,17,0.05)]">
+    <div className="premium-surface-soft rounded-[1.4rem] p-6">
       <h3 className="font-serif text-2xl text-[var(--color-text)]">Payment Preference</h3>
       <p className="mt-2 text-sm text-[var(--color-muted)]">Select how you would prefer to receive payment instructions after order review.</p>
       <div className="mt-4 space-y-3">

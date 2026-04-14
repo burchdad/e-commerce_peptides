@@ -24,12 +24,12 @@ export const Navbar = () => {
   const { cartCount } = useCart();
 
   return (
-    <header className="sticky top-0 z-40 bg-[rgba(248,247,245,0.92)] backdrop-blur-xl">
+    <header className="sticky top-0 z-40 bg-[rgba(26,26,26,0.72)] backdrop-blur-xl">
       <TrustBar />
       <div className="border-b border-[var(--color-border)]">
         <div className="container flex items-center justify-between py-4">
           <Link href="/" className="flex items-center gap-3">
-            <span className="relative h-10 w-10 overflow-hidden rounded-full border border-[var(--color-border)] bg-white">
+            <span className="relative h-10 w-10 overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-depth)]">
               <SafeImage
                 src={siteImages.brand.logo}
                 alt={`${siteConfig.brandName} logo`}

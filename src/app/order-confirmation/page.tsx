@@ -12,7 +12,7 @@ export default async function OrderConfirmationPage({
   const order = orderReference ? await getOrderRequestRecord(orderReference) : null;
 
   return (
-    <div className="rounded-[1.8rem] border border-[var(--color-border)] bg-white p-8 shadow-[0_16px_40px_rgba(17,17,17,0.08)] md:p-10">
+    <div className="premium-surface-deep rounded-[1.8rem] p-8 md:p-10">
       <div className="flex items-center gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-lg text-emerald-600">✓</span>
         <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-gold)]">Order Request Received</p>
@@ -20,7 +20,7 @@ export default async function OrderConfirmationPage({
       <h1 className="mt-3 font-serif text-4xl text-[var(--color-text)] md:text-5xl">You&apos;re all set.</h1>
       <p className="mt-4 max-w-2xl text-[var(--color-muted)]">Your order has been received. Check your email — we&apos;ll send you full payment instructions and guide you through every step.</p>
 
-      <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-6">
+      <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.22)] p-6">
         <h2 className="font-serif text-xl text-[var(--color-text)]">What happens next</h2>
         <ol className="mt-5 space-y-5">
           {[
@@ -47,7 +47,7 @@ export default async function OrderConfirmationPage({
           {order ? <p className="mt-4 text-sm text-[var(--color-muted)]">Preferred payment follow-up: {order.paymentMethodLabel}</p> : null}
         </div>
 
-        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
+        <div className="premium-surface-soft rounded-2xl p-5">
           <h2 className="font-serif text-2xl text-[var(--color-text)]">Items</h2>
           {order ? (
             <ul className="mt-4 space-y-3 text-sm text-[var(--color-muted)]">

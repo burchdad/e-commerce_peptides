@@ -29,7 +29,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
-        <article className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
+        <article className="premium-surface rounded-2xl p-6">
           <h2 className="font-serif text-2xl text-[var(--color-text)]">Product Details</h2>
           <ul className="mt-4 space-y-2 text-sm text-[var(--color-muted)]">
             {product.attributes.map((attribute) => (
@@ -40,7 +40,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             ))}
           </ul>
         </article>
-        <article className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
+        <article className="premium-surface rounded-2xl p-6">
           <h2 className="font-serif text-2xl text-[var(--color-text)]">Shipping & Policies</h2>
           <p className="mt-4 text-sm text-[var(--color-muted)]">Orders are submitted as requests and reviewed before confirmation and fulfillment details are shared.</p>
           <p className="mt-3 text-sm text-[var(--color-muted)]">Order placement requires acceptance of terms and any required verification steps.</p>

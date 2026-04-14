@@ -35,11 +35,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const themeStyle = {
-    '--color-bg': siteConfig.theme.bg,
-    '--color-bg-soft': siteConfig.theme.bgSoft,
-    '--color-text': siteConfig.theme.text,
-    '--color-muted': siteConfig.theme.muted,
-    '--color-gold': siteConfig.theme.accent,
+    '--color-bg': '#7a0c12',
+    '--color-bg-soft': '#2a1215',
+    '--color-text': '#f8f5f0',
+    '--color-muted': '#d8c9a7',
+    '--color-gold': '#d4af37',
   } as CSSProperties;
 
   return (

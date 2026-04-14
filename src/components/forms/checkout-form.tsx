@@ -135,7 +135,7 @@ export const CheckoutForm = () => {
 
   if (resolved.length === 0) {
     return (
-      <div className="rounded-[1.5rem] border border-[var(--color-border)] bg-white p-8 text-center shadow-[0_12px_30px_rgba(17,17,17,0.06)]">
+      <div className="premium-surface-soft rounded-[1.5rem] p-8 text-center">
         <p className="text-[var(--color-muted)]">Your cart is currently empty.</p>
         <Link className="btn-primary mt-4 inline-block" href="/shop">
           Continue Shopping
@@ -155,7 +155,7 @@ export const CheckoutForm = () => {
             return (
               <div
                 key={label}
-                className={`rounded-xl border px-4 py-3 text-xs uppercase tracking-[0.16em] transition ${isActive ? 'border-[var(--color-gold)] bg-white text-[var(--color-text)] shadow-[0_8px_20px_rgba(17,17,17,0.05)]' : isComplete ? 'border-[var(--color-border)] bg-[var(--color-bg-soft)] text-[var(--color-text)]' : 'border-[var(--color-border)] bg-transparent text-[var(--color-muted)]'}`}
+                className={`rounded-xl border px-4 py-3 text-xs uppercase tracking-[0.16em] transition ${isActive ? 'border-[var(--color-gold)] bg-[rgba(212,175,55,0.15)] text-[var(--color-text)] shadow-[0_0_18px_rgba(212,175,55,0.2)]' : isComplete ? 'border-[var(--color-border)] bg-[rgba(0,0,0,0.2)] text-[var(--color-text)]' : 'border-[var(--color-border)] bg-transparent text-[var(--color-muted)]'}`}
               >
                 <span className="block text-[10px] text-[var(--color-gold)]">Step {index + 1}</span>
                 <span className="mt-1 block">{label}</span>
@@ -165,7 +165,7 @@ export const CheckoutForm = () => {
         </div>
 
         {step === 0 ? (
-          <div className="rounded-[1.4rem] border border-[var(--color-border)] bg-white p-6 shadow-[0_10px_24px_rgba(17,17,17,0.05)]">
+          <div className="premium-surface-soft rounded-[1.4rem] p-6">
             <h2 className="font-serif text-2xl text-[var(--color-text)]">Customer Info</h2>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <input className="input" placeholder="Full Name" value={formState.customerName} onChange={(event) => updateField('customerName', event.target.value)} />
@@ -176,7 +176,7 @@ export const CheckoutForm = () => {
         ) : null}
 
         {step === 1 ? (
-          <div className="rounded-[1.4rem] border border-[var(--color-border)] bg-white p-6 shadow-[0_10px_24px_rgba(17,17,17,0.05)]">
+          <div className="premium-surface-soft rounded-[1.4rem] p-6">
             <h2 className="font-serif text-2xl text-[var(--color-text)]">Address</h2>
             <div className="mt-5 space-y-4">
               <textarea className="input min-h-24" placeholder="Shipping Address" value={formState.shippingAddress} onChange={(event) => updateField('shippingAddress', event.target.value)} />
@@ -196,7 +196,7 @@ export const CheckoutForm = () => {
         {step === 3 ? <PaymentMethodSelector methods={paymentMethods} selected={selectedMethod} onSelect={setSelectedMethod} /> : null}
 
         {step === 4 ? (
-          <div className="rounded-[1.4rem] border border-[var(--color-border)] bg-white p-6 shadow-[0_10px_24px_rgba(17,17,17,0.05)]">
+          <div className="premium-surface-deep rounded-[1.4rem] p-6">
             <h2 className="font-serif text-2xl text-[var(--color-text)]">Review & Submit</h2>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-4 text-sm text-[var(--color-muted)]">

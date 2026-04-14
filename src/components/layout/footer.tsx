@@ -4,7 +4,7 @@ import { siteConfig } from '@/lib/config/site-config';
 
 export const Footer = () => {
   return (
-    <footer className="mt-20 border-t border-[var(--color-border)] bg-[var(--color-bg)]">
+    <footer className="mt-20 border-t border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(26,26,26,0.5),rgba(26,26,26,0.9))]">
       <div className="container grid gap-10 py-12 md:grid-cols-3">
         <div>
           <h3 className="font-serif text-2xl text-[var(--color-text)]">{siteConfig.brandName}</h3>
@@ -13,9 +13,9 @@ export const Footer = () => {
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-gold)]">Legal</p>
           <ul className="mt-3 space-y-2 text-sm text-[var(--color-muted)]">
-            <li><Link href="/research-disclaimer">Research Disclaimer</Link></li>
-            <li><Link href="/terms">Terms & Conditions</Link></li>
-            <li><Link href="/privacy">Privacy Policy</Link></li>
+            <li><Link className="transition hover:text-[var(--color-gold)]" href="/research-disclaimer">Research Disclaimer</Link></li>
+            <li><Link className="transition hover:text-[var(--color-gold)]" href="/terms">Terms & Conditions</Link></li>
+            <li><Link className="transition hover:text-[var(--color-gold)]" href="/privacy">Privacy Policy</Link></li>
           </ul>
         </div>
         <div>

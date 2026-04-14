@@ -44,6 +44,11 @@ const productImages = (product: Product): string[] => {
   return [...new Set(all)];
 };
 
+const shouldSkipBottleMockup = (categorySlug: string, name = '') => {
+  const normalizedName = name.toLowerCase();
+  return categorySlug === 'accessories' || normalizedName.includes('kit');
+};
+
 const emptyForm = (defaultCategory: string): FormState => ({
   name: '',
   subtitle: '',
@@ -79,6 +84,9 @@ export const AdminProductsPage = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm(categories[0]?.slug ?? ''));
+  const [wrapProductUploads, setWrapProductUploads] = useState(
+    !shouldSkipBottleMockup(categories[0]?.slug ?? ''),
+  );
   const [newImageUrl, setNewImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +116,9 @@ export const AdminProductsPage = ({
   // ── Open modal ────────────────────────────────────────────────────────────
 
   const openCreate = () => {
-    setForm(emptyForm(categories[0]?.slug ?? ''));
+    const defaultCategory = categories[0]?.slug ?? '';
+    setForm(emptyForm(defaultCategory));
+    setWrapProductUploads(!shouldSkipBottleMockup(defaultCategory));
     setEditingProduct(null);
     setModal('create');
   };
@@ -130,6 +140,7 @@ export const AdminProductsPage = ({
       isFeatured: product.isFeatured,
       images: productImages(product),
     });
+    setWrapProductUploads(!shouldSkipBottleMockup(product.category, product.name));
     setEditingProduct(product);
     setModal('edit');
   };
@@ -157,9 +168,12 @@ export const AdminProductsPage = ({
     setUploadingImage(true);
     try {
       const uploaded: string[] = [];
+      const shouldRenderBottle = wrapProductUploads && !shouldSkipBottleMockup(form.categorySlug, form.name);
       for (const file of Array.from(files)) {
         const fd = new FormData();
         fd.append('file', file);
+        fd.append('categorySlug', form.categorySlug);
+        fd.append('renderStyle', shouldRenderBottle ? 'product-bottle' : 'plain');
         const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
         if (res.ok) {
           const json = await res.json() as { url: string };
@@ -171,7 +185,11 @@ export const AdminProductsPage = ({
       }
       if (uploaded.length > 0) {
         setForm((prev) => ({ ...prev, images: [...prev.images, ...uploaded] }));
-        addToast(`${uploaded.length} image${uploaded.length > 1 ? 's' : ''} uploaded.`);
+        addToast(
+          shouldRenderBottle
+            ? `${uploaded.length} bottle mockup image${uploaded.length > 1 ? 's' : ''} generated.`
+            : `${uploaded.length} image${uploaded.length > 1 ? 's' : ''} uploaded.`,
+        );
       }
     } finally {
       setUploadingImage(false);
@@ -344,6 +362,8 @@ export const AdminProductsPage = ({
           fileInputRef={fileInputRef}
           uploadingImage={uploadingImage}
           isSubmitting={isSubmitting}
+          wrapProductUploads={wrapProductUploads}
+          setWrapProductUploads={setWrapProductUploads}
           onAddImageUrl={addImageUrl}
           onRemoveImage={removeImage}
           onFileUpload={handleFileUpload}
@@ -455,6 +475,8 @@ const ProductModal = ({
   fileInputRef,
   uploadingImage,
   isSubmitting,
+  wrapProductUploads,
+  setWrapProductUploads,
   onAddImageUrl,
   onRemoveImage,
   onFileUpload,
@@ -470,6 +492,8 @@ const ProductModal = ({
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   uploadingImage: boolean;
   isSubmitting: boolean;
+  wrapProductUploads: boolean;
+  setWrapProductUploads: React.Dispatch<React.SetStateAction<boolean>>;
   onAddImageUrl: () => void;
   onRemoveImage: (i: number) => void;
   onFileUpload: (files: FileList | null) => void;
@@ -488,9 +512,14 @@ const ProductModal = ({
       name,
       ...(mode === 'create' ? { slug: generateSlug(name) } : {}),
     }));
+
+    if (name.toLowerCase().includes('kit')) {
+      setWrapProductUploads(false);
+    }
   };
 
   const [dragOver, setDragOver] = useState(false);
+  const bottleMockupUnavailable = shouldSkipBottleMockup(form.categorySlug, form.name);
 
   return (
     <div
@@ -582,7 +611,17 @@ const ProductModal = ({
           {/* Category */}
           <fieldset>
             <legend className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold)] mb-3">Category</legend>
-            <select className="input" value={form.categorySlug} onChange={field('categorySlug')}>
+            <select
+              className="input"
+              value={form.categorySlug}
+              onChange={(e) => {
+                const nextCategory = e.target.value;
+                setForm((prev) => ({ ...prev, categorySlug: nextCategory }));
+                if (shouldSkipBottleMockup(nextCategory, form.name)) {
+                  setWrapProductUploads(false);
+                }
+              }}
+            >
               {categories.map((c) => (
                 <option key={c.slug} value={c.slug}>{c.name}</option>
               ))}
@@ -618,6 +657,20 @@ const ProductModal = ({
           <fieldset className="space-y-4">
             <legend className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold)] mb-1">Images</legend>
             <p className="text-xs text-[var(--color-sand)]">First image = primary. Paste a URL or upload a file (JPG/PNG/WebP, max 5 MB).</p>
+
+            <label className="flex items-center gap-2 text-xs text-[var(--color-sand)]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[var(--color-gold)]"
+                checked={wrapProductUploads && !bottleMockupUnavailable}
+                disabled={bottleMockupUnavailable}
+                onChange={(e) => setWrapProductUploads(e.target.checked)}
+              />
+              Auto-generate bottle mockup on upload (products only)
+            </label>
+            {bottleMockupUnavailable ? (
+              <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup disabled for accessories or kit-style product images.</p>
+            ) : null}
 
             {/* Existing images */}
             {form.images.length > 0 && (

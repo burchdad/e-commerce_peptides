@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
+import { PremiumBottleMockup } from '@/components/commerce/premium-bottle-mockup';
 import { SafeImage } from '@/components/ui/safe-image';
 import type { ProductImageMap } from '@/lib/types';
 
@@ -20,16 +21,13 @@ export const ProductGallery = ({ productName, images }: ProductGalleryProps) => 
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] shadow-[0_10px_35px_rgba(17,17,17,0.08)]">
-        <SafeImage
-          src={activeImage}
-          alt={productName}
-          sizes="(max-width: 1024px) 100vw, 55vw"
-          className="object-cover transition duration-300 hover:scale-[1.02]"
-          priority
-          fallbackLabel="Product preview"
-        />
-      </div>
+      <PremiumBottleMockup
+        imageSrc={activeImage}
+        alt={productName}
+        sizes="(max-width: 1024px) 100vw, 55vw"
+        priority
+        className="aspect-[4/5]"
+      />
 
       {galleryImages.length > 1 ? (
         <div className="grid grid-cols-4 gap-2">
@@ -38,8 +36,8 @@ export const ProductGallery = ({ productName, images }: ProductGalleryProps) => 
               key={`${image}-${index}`}
               type="button"
               onClick={() => setActiveImage(image)}
-              className={`relative aspect-square overflow-hidden rounded-lg border bg-[var(--color-bg-soft)] ${
-                activeImage === image ? 'border-[var(--color-gold)]' : 'border-[var(--color-border)]'
+              className={`relative aspect-square overflow-hidden rounded-lg border bg-[var(--color-bg-soft)] transition ${
+                activeImage === image ? 'border-[var(--color-gold)] shadow-[0_0_18px_rgba(212,175,55,0.2)]' : 'border-[var(--color-border)]'
               }`}
               aria-label={`View image ${index + 1}`}
             >

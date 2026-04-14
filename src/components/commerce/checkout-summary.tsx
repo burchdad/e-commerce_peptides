@@ -5,7 +5,7 @@ export const CheckoutSummary = ({ items }: { items: Array<{ product: Product; qu
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   return (
-    <aside className="rounded-[1.4rem] border border-[var(--color-border)] bg-white p-6 shadow-[0_10px_24px_rgba(17,17,17,0.05)]">
+    <aside className="premium-surface-deep rounded-[1.4rem] p-6">
       <h3 className="font-serif text-2xl text-[var(--color-text)]">Order Summary</h3>
       <ul className="mt-4 space-y-3 text-sm text-[var(--color-muted)]">
         {items.map((item) => (

@@ -5,7 +5,7 @@ import { siteImages } from '@/lib/config/images';
 
 export const Hero = () => {
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] px-6 py-16 shadow-[0_22px_60px_rgba(17,17,17,0.16)] md:px-12 md:py-20">
+    <section className="premium-surface-deep relative overflow-hidden rounded-none px-6 py-16 md:px-14 md:py-24">
       <div className="absolute inset-0">
         <SafeImage
           src={siteImages.hero.main}
@@ -16,8 +16,11 @@ export const Hero = () => {
           fallbackLabel="Hero image"
         />
       </div>
-      <div className="absolute inset-0 bg-[linear-gradient(105deg,rgba(17,17,17,0.78),rgba(17,17,17,0.42),rgba(17,17,17,0.65))]" />
-      <div className="absolute inset-0 deco-grid opacity-20" />
+      <div className="absolute inset-0 bg-[linear-gradient(112deg,rgba(26,26,26,0.82),rgba(122,12,18,0.58),rgba(26,26,26,0.88))]" />
+      <div className="peptide-overlay peptide-overlay-soft absolute inset-0" />
+      <div className="absolute inset-0 deco-grid opacity-25" />
+      <div className="absolute -right-14 top-8 h-52 w-52 rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.36),transparent_65%)]" />
+      <div className="absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.2),transparent_70%)]" />
 
       <div className="relative max-w-3xl animate-fade-in">
         <p className="text-xs uppercase tracking-[0.34em] text-[var(--color-gold)]">Clinical Luxury Research Supply</p>
@@ -31,7 +34,7 @@ export const Hero = () => {
           <Link className="btn-primary" href="/shop/glp-products">
             Shop GLP Products
           </Link>
-          <Link className="btn-secondary border-[var(--color-gold)] bg-transparent text-white hover:bg-white/15" href="/complimentary-kit">
+          <Link className="btn-secondary border-[var(--color-gold)] bg-[rgba(0,0,0,0.2)] text-white hover:bg-[rgba(0,0,0,0.35)]" href="/complimentary-kit">
             View Complimentary Kit
           </Link>
         </div>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { SafeImage } from '@/components/ui/safe-image';
+import { PremiumBottleMockup } from '@/components/commerce/premium-bottle-mockup';
 import { useCart } from '@/context/cart-context';
 import type { Product } from '@/lib/types';
 import { currency } from '@/lib/utils/format';
@@ -14,27 +14,15 @@ export const ProductCard = ({ product }: { product: Product }) => {
   const secondaryImage = product.images.hover ?? product.images.gallery?.[0];
 
   return (
-    <article className="group rounded-[1.35rem] border border-[var(--color-border)] bg-white p-4 shadow-[0_12px_30px_rgba(17,17,17,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(17,17,17,0.13)]">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
-        <SafeImage
-          src={product.images.primary}
-          alt={product.name}
-          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 45vw, 30vw"
-          className={`object-cover transition duration-500 ${secondaryImage ? 'group-hover:scale-[1.03] group-hover:opacity-0' : 'group-hover:scale-[1.04]'}`}
-          fallbackLabel="Product image"
-        />
-        {secondaryImage ? (
-          <div className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100">
-            <SafeImage
-              src={secondaryImage}
-              alt={`${product.name} secondary view`}
-              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 45vw, 30vw"
-              className="object-cover"
-              fallbackLabel="Product image"
-            />
-          </div>
-        ) : null}
-      </div>
+    <article className="group premium-surface rounded-[1.35rem] p-4 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.34)]">
+      <PremiumBottleMockup
+        imageSrc={product.images.primary}
+        secondaryImageSrc={secondaryImage}
+        alt={product.name}
+        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 45vw, 30vw"
+        className="aspect-[4/5]"
+        useGroupHover
+      />
 
       <div className="mt-4">
         <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--color-gold)]">{product.category.replace('-', ' ')}</p>
@@ -52,12 +40,12 @@ export const ProductCard = ({ product }: { product: Product }) => {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(212,175,55,0.4)] bg-[rgba(212,175,55,0.1)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-gold)]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-gold)]" />
           Only 8 left in stock
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(248,245,240,0.2)] bg-[rgba(248,245,240,0.06)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ivory)]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-ivory)]" />
           Ships 24–48 hrs
         </span>
       </div>
@@ -75,14 +63,14 @@ export const ProductCard = ({ product }: { product: Product }) => {
 
       <div className="mt-4 flex gap-3">
         <button
-          className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm uppercase tracking-[0.14em] text-[var(--color-text)] transition hover:border-[var(--color-gold)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-1 rounded-xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-depth)_75%,var(--color-brand-red)_25%)] px-4 py-3 text-sm uppercase tracking-[0.14em] text-[var(--color-text)] transition hover:border-[var(--color-gold)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!ack}
           onClick={() => addItem(product.id, 1)}
         >
           Add to Cart
         </button>
         <Link
-          className="rounded-xl bg-[var(--color-gold)] px-4 py-3 text-sm uppercase tracking-[0.14em] text-[var(--color-text)]"
+          className="rounded-xl bg-[var(--color-gold)] px-4 py-3 text-sm uppercase tracking-[0.14em] text-[var(--color-depth)]"
           href={`/product/${product.slug}`}
         >
           View

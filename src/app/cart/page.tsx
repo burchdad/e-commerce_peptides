@@ -17,7 +17,7 @@ export default function CartPage() {
     <div className="space-y-6">
       <h1 className="section-title">Cart</h1>
       {resolved.length === 0 ? (
-        <div className="rounded-[1.5rem] border border-[var(--color-border)] bg-white p-8 text-center shadow-[0_12px_30px_rgba(17,17,17,0.06)]">
+        <div className="premium-surface-soft rounded-[1.5rem] p-8 text-center">
           <p className="text-[var(--color-muted)]">Your cart is empty.</p>
           <Link className="btn-primary mt-4 inline-block" href="/shop">Start Shopping</Link>
         </div>
@@ -25,7 +25,7 @@ export default function CartPage() {
         <>
           <div className="space-y-4">
             {resolved.map((item) => (
-              <div key={item.product.id} className="rounded-[1.5rem] border border-[var(--color-border)] bg-white p-4 shadow-[0_12px_30px_rgba(17,17,17,0.06)]">
+              <div key={item.product.id} className="premium-surface-soft rounded-[1.5rem] p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-4">
                     <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
@@ -47,13 +47,13 @@ export default function CartPage() {
                     <button className="h-11 w-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-lg text-[var(--color-text)] transition hover:border-[var(--color-gold)]" onClick={() => updateQuantity(item.product.id, item.quantity - 1)} aria-label={`Decrease quantity for ${item.product.name}`}>−</button>
                     <span className="min-w-10 text-center text-base font-semibold text-[var(--color-text)]">{item.quantity}</span>
                     <button className="h-11 w-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-lg text-[var(--color-text)] transition hover:border-[var(--color-gold)]" onClick={() => updateQuantity(item.product.id, item.quantity + 1)} aria-label={`Increase quantity for ${item.product.name}`}>+</button>
-                    <button className="rounded-xl border border-red-300 px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 md:ml-3" onClick={() => removeItem(item.product.id)}>Remove</button>
+                    <button className="rounded-xl border border-red-800/60 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-900/20 md:ml-3" onClick={() => removeItem(item.product.id)}>Remove</button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="rounded-[1.5rem] border border-[var(--color-border)] bg-white p-6 shadow-[0_12px_30px_rgba(17,17,17,0.06)]">
+          <div className="premium-surface-deep rounded-[1.5rem] p-6">
             <p className="flex justify-between text-lg text-[var(--color-text)]"><span>Subtotal</span><strong>{currency(subtotal)}</strong></p>
             <p className="mt-3 text-sm text-[var(--color-muted)]">Orders are subject to review and confirmation.</p>
             <Link className="btn-primary mt-5 inline-flex" href="/checkout">Proceed to Checkout</Link>

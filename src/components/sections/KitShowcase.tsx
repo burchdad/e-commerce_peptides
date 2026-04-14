@@ -6,7 +6,8 @@ import { siteImages } from '@/lib/config/images';
 
 export const KitShowcase = () => {
   return (
-    <section className="grid items-center gap-8 rounded-[1.75rem] border border-[var(--color-border)] bg-white p-6 shadow-[0_16px_45px_rgba(17,17,17,0.08)] lg:grid-cols-[1fr_1.05fr] lg:p-9">
+    <section className="premium-surface-soft relative grid items-center gap-8 overflow-hidden rounded-[1.75rem] p-6 lg:grid-cols-[1fr_1.05fr] lg:p-9">
+      <div className="peptide-overlay peptide-overlay-soft absolute inset-0" />
       <div className="relative aspect-[5/4] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
         <SafeImage
           src={siteImages.kit.main}
@@ -26,7 +27,7 @@ export const KitShowcase = () => {
 
         <ul className="mt-6 grid gap-3 text-sm text-[var(--color-text)] sm:grid-cols-2">
           {complimentaryKitItems.map((item) => (
-            <li key={item} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3">
+            <li key={item} className="rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.2)] px-4 py-3">
               {item}
             </li>
           ))}
