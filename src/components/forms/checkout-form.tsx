@@ -8,8 +8,8 @@ import { CheckoutSummary } from '@/components/commerce/checkout-summary';
 import { LegalAcknowledgement } from '@/components/forms/legal-acknowledgement';
 import { PaymentMethodSelector } from '@/components/forms/payment-method-selector';
 import { useCart } from '@/context/cart-context';
-import { paymentMethods, products } from '@/lib/data/site';
-import type { OrderAcknowledgements } from '@/lib/types';
+import { paymentMethods } from '@/lib/data/site';
+import type { OrderAcknowledgements, Product } from '@/lib/types';
 
 const defaultAcknowledgements: OrderAcknowledgements = {
   informationAccurate: false,
@@ -32,7 +32,7 @@ const defaultFormState = {
 
 const stepLabels = ['Customer Info', 'Address', 'Acknowledgements', 'Payment Preference', 'Review & Submit'];
 
-export const CheckoutForm = () => {
+export const CheckoutForm = ({ catalog }: { catalog: Product[] }) => {
   const router = useRouter();
   const { resolveItems, clearCart } = useCart();
   const [step, setStep] = useState(0);
@@ -44,7 +44,7 @@ export const CheckoutForm = () => {
   );
   const [acknowledgements, setAcknowledgements] = useState(defaultAcknowledgements);
 
-  const resolved = useMemo(() => resolveItems(products), [resolveItems]);
+  const resolved = useMemo(() => resolveItems(catalog), [resolveItems, catalog]);
 
   const updateField = (field: keyof typeof defaultFormState, value: string) => {
     setFormState((current) => ({ ...current, [field]: value }));

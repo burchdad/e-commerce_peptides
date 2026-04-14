@@ -1,6 +1,9 @@
 import { CheckoutForm } from '@/components/forms/checkout-form';
+import { fetchAllProducts } from '@/lib/utils/catalog';
 
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  const catalog = await fetchAllProducts();
+
   return (
     <div className="space-y-6">
       <h1 className="section-title">Order Request</h1>
@@ -8,7 +11,7 @@ export default function CheckoutPage() {
       <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm text-[var(--color-text)]">
         Payment instructions will be sent after order confirmation.
       </p>
-      <CheckoutForm />
+      <CheckoutForm catalog={catalog} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { categories, products } from '@/lib/data/site';
 export const getCategoryBySlug = (slug: string) => categories.find((category) => category.slug === slug);
 
 /** Fetch all products from DB (with static fallback). */
-const fetchAllProducts = async () => {
+export const fetchAllProducts = async () => {
   try {
     return await getAdminProducts();
   } catch {
