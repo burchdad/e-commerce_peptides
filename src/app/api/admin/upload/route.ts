@@ -20,8 +20,16 @@ const MOCKUP_WIDTH = 1200;
 const MOCKUP_HEIGHT = 1500;
 
 const renderBottleMockup = async (sourceImage: Uint8Array) => {
+  const LABEL_WIDTH = 500;
+  const LABEL_HEIGHT = 480;
+
   const labelImage = await sharp(sourceImage)
-    .resize({ width: 440, height: 560, fit: 'cover' })
+    .resize({
+      width: LABEL_WIDTH,
+      height: LABEL_HEIGHT,
+      fit: 'contain',
+      background: { r: 248, g: 245, b: 240, alpha: 1 },
+    })
     .png()
     .toBuffer();
 
@@ -36,19 +44,24 @@ const renderBottleMockup = async (sourceImage: Uint8Array) => {
           <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.45"/>
           <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
         </radialGradient>
+        <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#E2E7EE"/>
+          <stop offset="50%" stop-color="#A8B1BC"/>
+          <stop offset="100%" stop-color="#E1E6EC"/>
+        </linearGradient>
       </defs>
       <rect width="100%" height="100%" fill="url(#bg)"/>
       <rect width="100%" height="100%" fill="url(#goldGlow)"/>
-      <rect x="510" y="150" width="180" height="180" rx="26" fill="#1D1D1D" stroke="#D4AF37" stroke-opacity="0.42"/>
-      <rect x="420" y="280" width="360" height="980" rx="170" fill="#151515" stroke="#D4AF37" stroke-opacity="0.38"/>
-      <rect x="448" y="450" width="304" height="640" rx="18" fill="#2A1215" stroke="#D4AF37" stroke-opacity="0.8"/>
+      <rect x="500" y="152" width="200" height="175" rx="28" fill="url(#cap)" stroke="#D4AF37" stroke-opacity="0.24"/>
+      <rect x="410" y="280" width="380" height="980" rx="180" fill="#EDEFF2" fill-opacity="0.15" stroke="#F8F5F0" stroke-opacity="0.34"/>
+      <rect x="450" y="488" width="300" height="504" rx="18" fill="#F8F5F0" fill-opacity="0.92" stroke="#D4AF37" stroke-opacity="0.38"/>
       <ellipse cx="600" cy="1260" rx="240" ry="42" fill="#000" fill-opacity="0.4"/>
     </svg>
   `;
 
   const gloss = `
     <svg width="${MOCKUP_WIDTH}" height="${MOCKUP_HEIGHT}" viewBox="0 0 ${MOCKUP_WIDTH} ${MOCKUP_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-      <rect x="470" y="340" width="44" height="620" rx="22" fill="#fff" fill-opacity="0.14" transform="rotate(-8 470 340)"/>
+      <rect x="468" y="330" width="46" height="640" rx="22" fill="#fff" fill-opacity="0.26" transform="rotate(-8 468 330)"/>
       <rect x="0" y="0" width="1200" height="1500" fill="none" stroke="#D4AF37" stroke-opacity="0.14"/>
     </svg>
   `;
@@ -63,7 +76,7 @@ const renderBottleMockup = async (sourceImage: Uint8Array) => {
   })
     .composite([
       { input: Buffer.from(scene), left: 0, top: 0 },
-      { input: labelImage, left: 456, top: 492 },
+      { input: labelImage, left: Math.round((MOCKUP_WIDTH - LABEL_WIDTH) / 2), top: 500 },
       { input: Buffer.from(gloss), left: 0, top: 0 },
     ])
     .png({ quality: 92 })

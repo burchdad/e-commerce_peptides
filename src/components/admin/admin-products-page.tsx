@@ -84,9 +84,7 @@ export const AdminProductsPage = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm(categories[0]?.slug ?? ''));
-  const [wrapProductUploads, setWrapProductUploads] = useState(
-    !shouldSkipBottleMockup(categories[0]?.slug ?? ''),
-  );
+  const [wrapProductUploads, setWrapProductUploads] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,7 +116,7 @@ export const AdminProductsPage = ({
   const openCreate = () => {
     const defaultCategory = categories[0]?.slug ?? '';
     setForm(emptyForm(defaultCategory));
-    setWrapProductUploads(!shouldSkipBottleMockup(defaultCategory));
+    setWrapProductUploads(false);
     setEditingProduct(null);
     setModal('create');
   };
@@ -140,7 +138,7 @@ export const AdminProductsPage = ({
       isFeatured: product.isFeatured,
       images: productImages(product),
     });
-    setWrapProductUploads(!shouldSkipBottleMockup(product.category, product.name));
+    setWrapProductUploads(false);
     setEditingProduct(product);
     setModal('edit');
   };
