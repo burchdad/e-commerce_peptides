@@ -3,8 +3,8 @@ import { SafeImage } from '@/components/ui/safe-image';
 import { categoryBannerImages } from '@/lib/config/images';
 import { getProductsByCategory } from '@/lib/utils/catalog';
 
-export default function ShopAccessoriesPage() {
-  const products = getProductsByCategory('accessories');
+export default async function ShopAccessoriesPage() {
+  const products = await getProductsByCategory('accessories');
 
   return (
     <div className="space-y-8">

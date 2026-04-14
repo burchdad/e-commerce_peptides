@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { isAdminAuthenticated } from '@/lib/auth/admin';
-import { updateAdminProduct } from '@/lib/services/admin-data';
+import { deleteAdminProduct, getAdminProductById, updateAdminProduct } from '@/lib/services/admin-data';
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -17,7 +17,23 @@ const updateSchema = z.object({
   isActive: z.coerce.boolean().optional(),
   isFeatured: z.coerce.boolean().optional(),
   includesComplimentaryKit: z.coerce.boolean().optional(),
+  images: z.array(z.string().min(1)).optional(),
+  compareAtPrice: z.coerce.number().positive().optional().nullable(),
+  badge: z.string().optional().nullable(),
 });
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const { id } = await params;
+  const product = await getAdminProductById(id);
+  if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json({ data: product });
+}
 
 export async function PATCH(
   request: Request,
@@ -39,5 +55,18 @@ export async function PATCH(
     return NextResponse.json({ error: result.message }, { status: 400 });
   }
 
+  return NextResponse.json({ success: true, data: result.product });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const { id } = await params;
+  const result = await deleteAdminProduct(id);
+  if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
   return NextResponse.json({ success: true });
 }

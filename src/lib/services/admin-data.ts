@@ -39,6 +39,10 @@ type ProductInput = {
   isActive?: boolean;
   isFeatured?: boolean;
   includesComplimentaryKit?: boolean;
+  // Extended fields
+  images?: string[];
+  compareAtPrice?: number | null;
+  badge?: string | null;
 };
 
 const toProduct = (product: PrismaProduct & { category: { slug: string } }) => ({
@@ -88,11 +92,11 @@ export const createAdminProduct = async (input: ProductInput) => {
     shortDescription: input.shortDescription,
     longDescription: input.longDescription,
     price: input.price,
-    compareAtPrice: null,
-    images: { primary: '' },
+    compareAtPrice: input.compareAtPrice ?? null,
+    images: input.images && input.images.length > 0 ? input.images : { primary: '' },
     stockQuantity: input.stockQuantity,
     sku: input.sku,
-    badge: null,
+    badge: input.badge ?? null,
     includesComplimentaryKit: input.includesComplimentaryKit ?? false,
     attributes: [],
     isActive: input.isActive ?? true,
@@ -100,8 +104,8 @@ export const createAdminProduct = async (input: ProductInput) => {
     category: { connect: { id: category.id } },
   };
 
-  await prisma!.product.create({ data });
-  return { ok: true, message: 'Product created.' };
+  const created = await prisma!.product.create({ data, include: { category: true } });
+  return { ok: true, message: 'Product created.', product: toProduct(created) };
 };
 
 export const updateAdminProduct = async (id: string, patch: Partial<ProductInput>) => {
@@ -124,6 +128,9 @@ export const updateAdminProduct = async (id: string, patch: Partial<ProductInput
   if (patch.includesComplimentaryKit !== undefined) {
     data.includesComplimentaryKit = patch.includesComplimentaryKit;
   }
+  if (patch.images !== undefined) data.images = patch.images;
+  if (patch.compareAtPrice !== undefined) data.compareAtPrice = patch.compareAtPrice;
+  if (patch.badge !== undefined) data.badge = patch.badge;
 
   if (patch.categorySlug) {
     const category = await prisma!.category.findUnique({ where: { slug: patch.categorySlug } });
@@ -133,8 +140,32 @@ export const updateAdminProduct = async (id: string, patch: Partial<ProductInput
     data.category = { connect: { id: category.id } };
   }
 
-  await prisma!.product.update({ where: { id }, data });
-  return { ok: true, message: 'Product updated.' };
+  const updated = await prisma!.product.update({ where: { id }, data, include: { category: true } });
+  return { ok: true, message: 'Product updated.', product: toProduct(updated) };
+};
+
+export const deleteAdminProduct = async (id: string) => {
+  if (!hasDatabaseUrl) {
+    return { ok: false, message: 'DATABASE_URL not configured.' };
+  }
+  try {
+    await prisma!.product.delete({ where: { id } });
+    return { ok: true, message: 'Product deleted.' };
+  } catch {
+    return { ok: false, message: 'Product not found or could not be deleted.' };
+  }
+};
+
+export const getAdminProductById = async (id: string) => {
+  if (!hasDatabaseUrl) {
+    return products.find((p) => p.id === id) ?? null;
+  }
+  try {
+    const row = await prisma!.product.findUnique({ where: { id }, include: { category: true } });
+    return row ? toProduct(row) : null;
+  } catch {
+    return null;
+  }
 };
 
 export const getAdminFaqs = async () => {

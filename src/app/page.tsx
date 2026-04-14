@@ -6,9 +6,10 @@ import { KitShowcase } from '@/components/sections/KitShowcase';
 import { DisclaimerNotice } from '@/components/ui/disclaimer-notice';
 import { FaqAccordion } from '@/components/ui/faq-accordion';
 import { categories, faqs } from '@/lib/data/site';
-import { featuredProducts } from '@/lib/utils/catalog';
+import { getFeaturedProducts } from '@/lib/utils/catalog';
 
-export default function Home() {
+export default async function Home() {
+  const featuredProducts = await getFeaturedProducts();
   return (
     <div className="space-y-16 md:space-y-20">
       <Hero />

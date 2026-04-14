@@ -68,9 +68,17 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
             {dbEnabled ? 'Database mode enabled: admin writes persist to PostgreSQL.' : 'Seed fallback mode: configure DATABASE_URL for persistent writes.'}
           </p>
         ) : <p className="text-sm text-[var(--color-sand)]">Client handoff mode enabled.</p>}
-        <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={onLogout}>
-          Logout
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href="/admin/products"
+            className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)] hover:bg-[var(--color-gold)]/10 transition"
+          >
+            Manage Products
+          </a>
+          <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={onLogout}>
+            Logout
+          </button>
+        </div>
       </div>
 
       {statusMessage ? <p className="text-sm text-[var(--color-sand)]">{statusMessage}</p> : null}

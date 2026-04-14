@@ -19,7 +19,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const category = getCategoryBySlug(categorySlug);
   if (!category) notFound();
 
-  const categoryProducts = getProductsByCategory(categorySlug);
+  const categoryProducts = await getProductsByCategory(categorySlug);
 
   return (
     <div className="space-y-8">

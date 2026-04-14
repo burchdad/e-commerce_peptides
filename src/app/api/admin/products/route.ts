@@ -17,6 +17,9 @@ const createSchema = z.object({
   isActive: z.coerce.boolean().optional(),
   isFeatured: z.coerce.boolean().optional(),
   includesComplimentaryKit: z.coerce.boolean().optional(),
+  images: z.array(z.string().min(1)).optional(),
+  compareAtPrice: z.coerce.number().positive().optional().nullable(),
+  badge: z.string().optional().nullable(),
 });
 
 export async function GET() {
@@ -44,5 +47,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: result.message }, { status: 400 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, data: result.product });
 }
