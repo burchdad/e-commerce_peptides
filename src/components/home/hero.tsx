@@ -8,11 +8,19 @@ export const Hero = () => {
     <section className="premium-surface-deep relative overflow-hidden rounded-none px-6 py-16 md:px-14 md:py-24">
       <div className="absolute inset-0">
         <SafeImage
+          src={siteImages.hero.mobile}
+          alt="Research lab banner"
+          sizes="100vw"
+          priority
+          className="object-cover object-top md:hidden"
+          fallbackLabel="Hero image"
+        />
+        <SafeImage
           src={siteImages.hero.main}
           alt="Research lab banner"
           sizes="100vw"
           priority
-          className="object-cover"
+          className="hidden object-cover object-top md:block"
           fallbackLabel="Hero image"
         />
       </div>
