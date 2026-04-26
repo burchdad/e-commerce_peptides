@@ -54,8 +54,18 @@ const storeVerification = () => {
   writeCookieExpiry(expires);
 };
 
-const calculateAge = (dob: string): number => {
-  const birth = new Date(dob);
+const parseDob = (dob: string): Date | null => {
+  // Use a fixed local-midday timestamp to avoid timezone edge cases.
+  const parts = dob.split('-').map(Number);
+  if (parts.length !== 3 || parts.some((value) => !Number.isFinite(value))) return null;
+  const [year, month, day] = parts;
+  if (!year || !month || !day) return null;
+  const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+};
+
+const calculateAge = (birth: Date): number => {
   const today = new Date();
   let age = today.getFullYear() - birth.getFullYear();
   const monthDiff = today.getMonth() - birth.getMonth();
@@ -70,6 +80,8 @@ export const AgeGateModal = () => {
   const [dob, setDob] = useState('');
   const [confirmed21Plus, setConfirmed21Plus] = useState(false);
   const [error, setError] = useState('');
+  const emailIsValid = email.trim().length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const canContinue = Boolean(firstName.trim() && dob && confirmed21Plus && emailIsValid);
 
   const handleContinue = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,7 +102,16 @@ export const AgeGateModal = () => {
       setError('Please enter your date of birth.');
       return;
     }
-    const age = calculateAge(dob);
+    if (!emailIsValid) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    const parsedDob = parseDob(dob);
+    if (!parsedDob) {
+      setError('Please enter a valid date of birth.');
+      return;
+    }
+    const age = calculateAge(parsedDob);
     if (isNaN(age) || age < 0) {
       setError('Please enter a valid date of birth.');
       return;
@@ -138,6 +159,11 @@ export const AgeGateModal = () => {
         <p className="mt-4 text-sm text-[var(--color-sand)]">
           You must be 21 years of age or older to access this website and purchase products.
         </p>
+        {error ? (
+          <p role="alert" className="mt-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            {error}
+          </p>
+        ) : null}
 
         <div className="mt-5 space-y-4">
           <label className="block text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
@@ -175,13 +201,13 @@ export const AgeGateModal = () => {
             id="dob"
             type="date"
             value={dob}
-            onChange={(e) => { setDob(e.target.value); setError(''); }}
+            onChange={(e) => {
+              setDob(e.target.value);
+              setError('');
+            }}
             max={new Date().toISOString().split('T')[0]}
             className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-4 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)] [color-scheme:dark]"
           />
-          {error && (
-            <p role="alert" className="mt-2 text-xs text-red-400">{error}</p>
-          )}
         </div>
 
         <label className="mt-4 flex items-start gap-2 text-xs text-[var(--color-sand)]">
@@ -200,7 +226,8 @@ export const AgeGateModal = () => {
         <div className="mt-6 flex gap-3">
           <button
             type="submit"
-            className="flex-1 rounded-full bg-[var(--color-gold)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-ink)] transition hover:brightness-110"
+            disabled={!canContinue}
+            className="flex-1 rounded-full bg-[var(--color-gold)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-ink)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Continue
           </button>
@@ -214,7 +241,7 @@ export const AgeGateModal = () => {
         </div>
 
         <p className="mt-4 text-center text-[10px] text-[var(--color-muted)]">
-          Verification is stored locally for {EXPIRY_DAYS} days.
+          Complete all fields to continue. Verification is stored locally for {EXPIRY_DAYS} days.
         </p>
       </form>
     </div>
