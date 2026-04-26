@@ -5,6 +5,7 @@ import { ProductGallery } from '@/components/commerce/product-gallery';
 import { ProductPurchasePanel } from '@/components/commerce/product-purchase-panel';
 import { DisclaimerNotice } from '@/components/ui/disclaimer-notice';
 import { siteConfig } from '@/lib/config/site-config';
+import { getPublicCoadocuments } from '@/lib/services/admin-data';
 import { getProductBySlug } from '@/lib/utils/catalog';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -20,6 +21,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
+  const coas = await getPublicCoadocuments(product.id);
 
   return (
     <div className="space-y-10">
@@ -44,8 +46,25 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <h2 className="font-serif text-2xl text-[var(--color-text)]">Shipping & Policies</h2>
           <p className="mt-4 text-sm text-[var(--color-muted)]">Orders are submitted as requests and reviewed before confirmation and fulfillment details are shared.</p>
           <p className="mt-3 text-sm text-[var(--color-muted)]">Order placement requires acceptance of terms and any required verification steps.</p>
+          <p className="mt-3 text-sm text-[var(--color-muted)]">Every qualifying peptide order includes a complimentary research support kit.</p>
         </article>
       </section>
+
+      {coas.length > 0 ? (
+        <section className="premium-surface rounded-2xl p-6">
+          <h2 className="font-serif text-2xl text-[var(--color-text)]">COAs</h2>
+          <div className="mt-4 space-y-2 text-sm text-[var(--color-muted)]">
+            {coas.map((coa) => (
+              <p key={coa.id}>
+                Batch {coa.batchNumber} | {coa.purityPercent}% |{' '}
+                <a href={coa.pdfUrl} target="_blank" rel="noreferrer" className="text-[var(--color-gold)] hover:underline">
+                  View PDF
+                </a>
+              </p>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <DisclaimerNotice />
     </div>

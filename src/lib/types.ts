@@ -33,8 +33,22 @@ export type Product = {
   badge?: string;
   includesComplimentaryKit: boolean;
   attributes: ProductAttribute[];
+  variants?: ProductVariant[];
   isActive: boolean;
   isFeatured: boolean;
+};
+
+export type ProductVariant = {
+  id: string;
+  productId: string;
+  name: string;
+  sku: string;
+  price: number;
+  compareAtPrice?: number;
+  stock: number;
+  active: boolean;
+  imageOverride?: string;
+  sortOrder?: number;
 };
 
 export type FaqItem = {
@@ -50,6 +64,13 @@ export type LegalContent = {
 
 export type CartItem = {
   productId: string;
+  variantId?: string;
+  quantity: number;
+};
+
+export type ResolvedCartItem = {
+  product: Product;
+  variant: ProductVariant;
   quantity: number;
 };
 
@@ -59,6 +80,52 @@ export type PaymentMethod = {
   description: string;
   enabled: boolean;
   mode: 'manual' | 'invoice' | 'placeholder';
+};
+
+export type DiscountType = 'percent' | 'fixed';
+
+export type DiscountRule = {
+  id: string;
+  name: string;
+  type: DiscountType;
+  minQuantity: number;
+  value: number;
+  eligibleProductIds?: string[];
+  eligibleCategoryIds?: string[];
+  active: boolean;
+  code?: string;
+};
+
+export type COADocument = {
+  id: string;
+  productId: string;
+  productName?: string;
+  batchNumber: string;
+  purityPercent: number;
+  labName: string;
+  testDate: string;
+  pdfUrl: string;
+  active: boolean;
+};
+
+export type ShippingMethod = {
+  id: string;
+  name: string;
+  carrier: string;
+  price: number;
+  eta: string;
+  description: string;
+  active: boolean;
+  sortOrder: number;
+};
+
+export type AgeGateRegistrant = {
+  id: string;
+  firstName: string;
+  email: string;
+  dob: string;
+  verifiedAt: string;
+  createdAt: string;
 };
 
 export type OrderAcknowledgements = {
@@ -101,7 +168,9 @@ export type OrderRequest = {
   acknowledgements: OrderAcknowledgements;
   items: Array<{
     productId?: string;
+    productVariantId?: string;
     productName: string;
+    variantName?: string;
     sku?: string;
     unitPrice: number;
     quantity: number;

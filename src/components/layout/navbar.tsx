@@ -14,6 +14,7 @@ const links = [
   { href: '/shop', label: 'Shop' },
   { href: '/shop/accessories', label: 'Accessories' },
   { href: '/calculator', label: 'Calculator' },
+  { href: '/coas', label: 'COAs' },
   { href: '/faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact' },
   { href: '/admin/login', label: 'Admin' },

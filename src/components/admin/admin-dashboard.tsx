@@ -1,25 +1,102 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+
+import type { AgeGateRegistrant, COADocument, DiscountRule, ShippingMethod } from '@/lib/types';
 
 type DashboardProps = {
   dbEnabled: boolean;
   isClientMode: boolean;
   categories: Array<{ slug: string; name: string }>;
-  products: Array<{ id: string; name: string; slug: string; category: string; price: number; stockQuantity: number; isActive: boolean }>;
+  products: Array<{ id: string; name: string; slug: string; category: string; price: number; stockQuantity: number; isActive: boolean; variants?: Array<{ id: string; name: string; sku: string; price: number; stock: number; active: boolean }> }>;
   faqs: Array<{ id: string; question: string; answer: string }>;
   legalPages: Array<{ id: string; slug: string; title: string; intro: string }>;
   orders: Array<{ id: string; orderReference: string; email: string; status: string; createdAt: string }>;
+  ageGateRegistrants: AgeGateRegistrant[];
+  discountRules: DiscountRule[];
+  coaDocuments: COADocument[];
+  shippingMethods: ShippingMethod[];
 };
 
-export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, faqs, legalPages, orders }: DashboardProps) => {
-  const [statusMessage, setStatusMessage] = useState('');
+type AdminSection =
+  | 'Dashboard'
+  | 'Orders'
+  | 'Products'
+  | 'Variants'
+  | 'Discounts'
+  | 'COAs'
+  | 'Shipping'
+  | 'Age Gate Registrants'
+  | 'Legal / Content'
+  | 'Settings';
 
-  const submitJson = async (url: string, method: 'POST' | 'PATCH', payload: Record<string, unknown>) => {
+const sections: AdminSection[] = [
+  'Dashboard',
+  'Orders',
+  'Products',
+  'Variants',
+  'Discounts',
+  'COAs',
+  'Shipping',
+  'Age Gate Registrants',
+  'Legal / Content',
+  'Settings',
+];
+
+const statusOptions = ['pending', 'reviewing', 'approved', 'payment-sent', 'completed', 'cancelled'];
+
+const downloadCsv = (filename: string, lines: string[]) => {
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, legalPages, orders, ageGateRegistrants, discountRules, coaDocuments, shippingMethods }: DashboardProps) => {
+  const [active, setActive] = useState<AdminSection>('Dashboard');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [registrantSearch, setRegistrantSearch] = useState('');
+
+  const [variantProductId, setVariantProductId] = useState(products[0]?.id ?? '');
+  const [variantForm, setVariantForm] = useState({ name: '', sku: '', price: '0', stock: '0' });
+
+  const [discountForm, setDiscountForm] = useState({
+    name: '',
+    type: 'percent' as 'percent' | 'fixed',
+    minQuantity: '1',
+    value: '0',
+    code: '',
+    active: true,
+  });
+
+  const [coaForm, setCoaForm] = useState({
+    productId: products[0]?.id ?? '',
+    batchNumber: '',
+    purityPercent: '99',
+    labName: '',
+    testDate: '',
+    pdfUrl: '',
+    active: true,
+  });
+
+  const [shippingForm, setShippingForm] = useState({
+    name: '',
+    carrier: '',
+    price: '0',
+    eta: '',
+    description: '',
+    sortOrder: '0',
+    active: true,
+  });
+
+  const submitJson = async (url: string, method: 'POST' | 'PATCH' | 'DELETE', payload?: Record<string, unknown>) => {
     const response = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      headers: payload ? { 'Content-Type': 'application/json' } : undefined,
+      body: payload ? JSON.stringify(payload) : undefined,
     });
 
     if (!response.ok) {
@@ -28,16 +105,82 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
     }
   };
 
-  const onCreateProduct = async (formData: FormData) => {
-    const payload = Object.fromEntries(formData.entries());
-    await submitJson('/api/admin/products', 'POST', payload);
-    setStatusMessage('Product created. Refresh to view latest records.');
+  const filteredRegistrants = useMemo(() => {
+    const q = registrantSearch.trim().toLowerCase();
+    if (!q) return ageGateRegistrants;
+    return ageGateRegistrants.filter((entry) =>
+      `${entry.firstName} ${entry.email}`.toLowerCase().includes(q),
+    );
+  }, [ageGateRegistrants, registrantSearch]);
+
+  const onUpdateOrder = async (orderId: string, status: string) => {
+    await submitJson(`/api/admin/orders/${orderId}`, 'PATCH', { status });
+    setStatusMessage('Order status updated. Refresh to load latest records.');
   };
 
-  const onCreateFaq = async (formData: FormData) => {
-    const payload = Object.fromEntries(formData.entries());
-    await submitJson('/api/admin/faqs', 'POST', payload);
-    setStatusMessage('FAQ created. Refresh to view latest records.');
+  const onCreateVariant = async () => {
+    await submitJson('/api/admin/variants', 'POST', {
+      productId: variantProductId,
+      name: variantForm.name,
+      sku: variantForm.sku,
+      price: Number(variantForm.price),
+      stock: Number(variantForm.stock),
+      active: true,
+    });
+    setStatusMessage('Variant created. Refresh to load latest records.');
+  };
+
+  const onCreateDiscount = async () => {
+    await submitJson('/api/admin/discount-rules', 'POST', {
+      name: discountForm.name,
+      type: discountForm.type,
+      minQuantity: Number(discountForm.minQuantity),
+      value: Number(discountForm.value),
+      code: discountForm.code || undefined,
+      active: discountForm.active,
+    });
+    setStatusMessage('Discount rule saved. Refresh to load latest records.');
+  };
+
+  const onDeleteDiscount = async (id: string) => {
+    await submitJson(`/api/admin/discount-rules/${id}`, 'DELETE');
+    setStatusMessage('Discount rule deleted. Refresh to load latest records.');
+  };
+
+  const onCreateCoa = async () => {
+    await submitJson('/api/admin/coa-documents', 'POST', {
+      productId: coaForm.productId,
+      batchNumber: coaForm.batchNumber,
+      purityPercent: Number(coaForm.purityPercent),
+      labName: coaForm.labName,
+      testDate: coaForm.testDate,
+      pdfUrl: coaForm.pdfUrl,
+      active: coaForm.active,
+    });
+    setStatusMessage('COA saved. Refresh to load latest records.');
+  };
+
+  const onDeleteCoa = async (id: string) => {
+    await submitJson(`/api/admin/coa-documents/${id}`, 'DELETE');
+    setStatusMessage('COA deleted. Refresh to load latest records.');
+  };
+
+  const onCreateShipping = async () => {
+    await submitJson('/api/admin/shipping-methods', 'POST', {
+      name: shippingForm.name,
+      carrier: shippingForm.carrier,
+      price: Number(shippingForm.price),
+      eta: shippingForm.eta,
+      description: shippingForm.description,
+      sortOrder: Number(shippingForm.sortOrder),
+      active: shippingForm.active,
+    });
+    setStatusMessage('Shipping method saved. Refresh to load latest records.');
+  };
+
+  const onDeleteShipping = async (id: string) => {
+    await submitJson(`/api/admin/shipping-methods/${id}`, 'DELETE');
+    setStatusMessage('Shipping method deleted. Refresh to load latest records.');
   };
 
   const onUpdateLegal = async (formData: FormData) => {
@@ -50,161 +193,253 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
     setStatusMessage('Legal page updated. Refresh to view latest records.');
   };
 
-  const onUpdateOrder = async (orderId: string, status: string) => {
-    await submitJson(`/api/admin/orders/${orderId}`, 'PATCH', { status });
-    setStatusMessage('Order statuses updated. Refresh to view latest records.');
-  };
-
   const onLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
     window.location.href = '/admin/login';
   };
 
+  const exportRegistrants = () => {
+    const lines = [
+      'firstName,email,dob,verifiedAt,createdAt',
+      ...filteredRegistrants.map((entry) => `${entry.firstName},${entry.email},${entry.dob},${entry.verifiedAt},${entry.createdAt}`),
+    ];
+    downloadCsv('age-gate-registrants.csv', lines);
+  };
+
+  const activeProduct = products.find((product) => product.id === variantProductId);
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-4">
-        {!isClientMode ? (
-          <p className="text-sm text-[var(--color-sand)]">
-            {dbEnabled ? 'Database mode enabled: admin writes persist to PostgreSQL.' : 'Seed fallback mode: configure DATABASE_URL for persistent writes.'}
-          </p>
-        ) : <p className="text-sm text-[var(--color-sand)]">Client handoff mode enabled.</p>}
-        <div className="flex items-center gap-3">
-          <a
-            href="/admin/products"
-            className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)] hover:bg-[var(--color-gold)]/10 transition"
-          >
-            Manage Products
-          </a>
-          <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={onLogout}>
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {statusMessage ? <p className="text-sm text-[var(--color-sand)]">{statusMessage}</p> : null}
-
-      {!isClientMode ? <section className="grid gap-4 lg:grid-cols-2">
-        <form
-          className="space-y-3 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5"
-          action={async (formData) => {
-            try {
-              await onCreateProduct(formData);
-            } catch (error) {
-              setStatusMessage(error instanceof Error ? error.message : 'Failed to create product.');
-            }
-          }}
-        >
-          <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Create Product</h2>
-          <input className="input" name="name" placeholder="Name" required />
-          <input className="input" name="slug" placeholder="Slug" required />
-          <select className="input" name="categorySlug" required>
-            {categories.map((category) => (
-              <option key={category.slug} value={category.slug}>{category.name}</option>
-            ))}
-          </select>
-          <input className="input" name="subtitle" placeholder="Subtitle" required />
-          <input className="input" name="shortDescription" placeholder="Short Description" required />
-          <textarea className="input min-h-20" name="longDescription" placeholder="Long Description" required />
-          <div className="grid gap-3 md:grid-cols-3">
-            <input className="input" name="price" placeholder="Price" type="number" step="0.01" required />
-            <input className="input" name="stockQuantity" placeholder="Stock" type="number" required />
-            <input className="input" name="sku" placeholder="SKU" required />
-          </div>
-          <button className="rounded-full bg-[var(--color-gold)] px-6 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-ink)]" type="submit">Save Product</button>
-        </form>
-
-        <form
-          className="space-y-3 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5"
-          action={async (formData) => {
-            try {
-              await onCreateFaq(formData);
-            } catch (error) {
-              setStatusMessage(error instanceof Error ? error.message : 'Failed to create FAQ.');
-            }
-          }}
-        >
-          <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Create FAQ</h2>
-          <input className="input" name="question" placeholder="Question" required />
-          <textarea className="input min-h-24" name="answer" placeholder="Answer" required />
-          <button className="rounded-full bg-[var(--color-gold)] px-6 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-ink)]" type="submit">Save FAQ</button>
-
-          <div className="border-t border-[var(--color-gold-soft)] pt-4">
-            <h3 className="font-serif text-xl text-[var(--color-ivory)]">Current FAQs</h3>
-            <ul className="mt-2 space-y-2 text-sm text-[var(--color-sand)]">
-              {faqs.slice(0, 6).map((faq) => (
-                <li key={faq.id} className="rounded border border-[var(--color-gold-soft)] p-2">{faq.question}</li>
-              ))}
-            </ul>
-          </div>
-        </form>
-      </section> : null}
-
-      {!isClientMode ? <form
-        className="space-y-3 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5"
-        action={async (formData) => {
-          try {
-            await onUpdateLegal(formData);
-          } catch (error) {
-            setStatusMessage(error instanceof Error ? error.message : 'Failed to update legal page.');
-          }
-        }}
-      >
-        <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Update Legal Intro</h2>
-        <select className="input" name="slug" required>
-          {legalPages.map((page) => (
-            <option key={page.slug} value={page.slug}>{page.slug}</option>
+    <div className="grid gap-6 lg:grid-cols-[230px_1fr]">
+      <aside className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-3">
+        <p className="px-3 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-gold)]">Admin</p>
+        <nav className="space-y-1">
+          {sections.map((section) => (
+            <button
+              key={section}
+              onClick={() => setActive(section)}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${active === section ? 'bg-[rgba(212,175,55,0.18)] text-[var(--color-ivory)]' : 'text-[var(--color-sand)] hover:bg-white/5'}`}
+            >
+              {section}
+            </button>
           ))}
-        </select>
-        <input className="input" name="title" placeholder="Title" required />
-        <textarea className="input min-h-20" name="intro" placeholder="Intro" required />
-        <button className="rounded-full bg-[var(--color-gold)] px-6 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-ink)]" type="submit">Save Legal Page</button>
-      </form> : null}
+        </nav>
+      </aside>
 
-      <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
-        <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Order Request Statuses</h2>
-        {orders.length === 0 ? (
-          <p className="mt-2 text-sm text-[var(--color-sand)]">No persisted orders available yet.</p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {orders.map((order) => (
-              <OrderRow key={order.id} order={order} onUpdate={onUpdateOrder} />
-            ))}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-4">
+          <p className="text-sm text-[var(--color-sand)]">
+            {dbEnabled ? 'Database mode enabled.' : 'Seed fallback mode enabled.'} {isClientMode ? 'Client handoff mode enabled.' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <a href="/admin/products" className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)] hover:bg-[var(--color-gold)]/10 transition">
+              Manage Products
+            </a>
+            <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={onLogout}>
+              Logout
+            </button>
           </div>
-        )}
-      </section>
-
-      {!isClientMode ? <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
-        <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Current Product Snapshot</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="min-w-full text-left text-sm text-[var(--color-sand)]">
-            <thead>
-              <tr className="border-b border-[var(--color-gold-soft)] text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">
-                <th className="py-2 pr-3">Name</th>
-                <th className="py-2 pr-3">Category</th>
-                <th className="py-2 pr-3">Price</th>
-                <th className="py-2 pr-3">Stock</th>
-                <th className="py-2 pr-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.slice(0, 12).map((product) => (
-                <tr key={product.id} className="border-b border-[var(--color-gold-soft)]/20">
-                  <td className="py-2 pr-3">{product.name}</td>
-                  <td className="py-2 pr-3">{product.category}</td>
-                  <td className="py-2 pr-3">${product.price.toFixed(2)}</td>
-                  <td className="py-2 pr-3">{product.stockQuantity}</td>
-                  <td className="py-2 pr-3">{product.isActive ? 'Active' : 'Inactive'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
-      </section> : null}
+
+        {statusMessage ? <p className="text-sm text-[var(--color-sand)]">{statusMessage}</p> : null}
+
+        {active === 'Dashboard' ? (
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Products" value={String(products.length)} />
+            <StatCard label="Orders" value={String(orders.length)} />
+            <StatCard label="Age Gate Registrants" value={String(ageGateRegistrants.length)} />
+            <StatCard label="Active Discounts" value={String(discountRules.filter((rule) => rule.active).length)} />
+          </section>
+        ) : null}
+
+        {active === 'Orders' ? (
+          <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Orders</h2>
+            <div className="mt-4 space-y-3">
+              {orders.map((order) => (
+                <OrderRow key={order.id} order={order} onUpdate={onUpdateOrder} />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {active === 'Products' ? (
+          <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Products</h2>
+            <p className="mt-2 text-sm text-[var(--color-sand)]">Use the dedicated workspace for full product CRUD.</p>
+            <a href="/admin/products" className="btn-secondary mt-4 inline-flex">Open Product Manager</a>
+          </section>
+        ) : null}
+
+        {active === 'Variants' ? (
+          <section className="space-y-4 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Variants</h2>
+            <select className="input" value={variantProductId} onChange={(event) => setVariantProductId(event.target.value)}>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>{product.name}</option>
+              ))}
+            </select>
+            <div className="grid gap-3 md:grid-cols-4">
+              <input className="input" placeholder="Variant name" value={variantForm.name} onChange={(event) => setVariantForm((prev) => ({ ...prev, name: event.target.value }))} />
+              <input className="input" placeholder="SKU" value={variantForm.sku} onChange={(event) => setVariantForm((prev) => ({ ...prev, sku: event.target.value }))} />
+              <input className="input" placeholder="Price" type="number" value={variantForm.price} onChange={(event) => setVariantForm((prev) => ({ ...prev, price: event.target.value }))} />
+              <input className="input" placeholder="Stock" type="number" value={variantForm.stock} onChange={(event) => setVariantForm((prev) => ({ ...prev, stock: event.target.value }))} />
+            </div>
+            <button className="btn-primary" onClick={onCreateVariant}>Add Variant</button>
+            <div className="rounded-xl border border-[var(--color-border)] p-3 text-sm text-[var(--color-sand)]">
+              {(activeProduct?.variants ?? []).length === 0
+                ? 'No variants found on selected product.'
+                : (activeProduct?.variants ?? []).map((variant) => (
+                    <p key={variant.id}>{variant.name} | {variant.sku} | ${variant.price.toFixed(2)} | stock {variant.stock}</p>
+                  ))}
+            </div>
+          </section>
+        ) : null}
+
+        {active === 'Discounts' ? (
+          <section className="space-y-4 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Discounts</h2>
+            <div className="grid gap-3 md:grid-cols-3">
+              <input className="input" placeholder="Rule name" value={discountForm.name} onChange={(event) => setDiscountForm((prev) => ({ ...prev, name: event.target.value }))} />
+              <select className="input" value={discountForm.type} onChange={(event) => setDiscountForm((prev) => ({ ...prev, type: event.target.value as 'percent' | 'fixed' }))}>
+                <option value="percent">Percent</option>
+                <option value="fixed">Fixed</option>
+              </select>
+              <input className="input" placeholder="Code (optional)" value={discountForm.code} onChange={(event) => setDiscountForm((prev) => ({ ...prev, code: event.target.value }))} />
+              <input className="input" placeholder="Min quantity" type="number" value={discountForm.minQuantity} onChange={(event) => setDiscountForm((prev) => ({ ...prev, minQuantity: event.target.value }))} />
+              <input className="input" placeholder="Value" type="number" value={discountForm.value} onChange={(event) => setDiscountForm((prev) => ({ ...prev, value: event.target.value }))} />
+            </div>
+            <button className="btn-primary" onClick={onCreateDiscount}>Save Discount</button>
+            <div className="space-y-2">
+              {discountRules.map((rule) => (
+                <div key={rule.id} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3 text-sm text-[var(--color-sand)]">
+                  <span>{rule.name} | {rule.type} | min {rule.minQuantity}</span>
+                  <button className="text-xs text-red-300" onClick={() => onDeleteDiscount(rule.id)}>Delete</button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {active === 'COAs' ? (
+          <section className="space-y-4 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">COAs</h2>
+            <div className="grid gap-3 md:grid-cols-3">
+              <select className="input" value={coaForm.productId} onChange={(event) => setCoaForm((prev) => ({ ...prev, productId: event.target.value }))}>
+                {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+              </select>
+              <input className="input" placeholder="Batch" value={coaForm.batchNumber} onChange={(event) => setCoaForm((prev) => ({ ...prev, batchNumber: event.target.value }))} />
+              <input className="input" placeholder="Purity %" type="number" value={coaForm.purityPercent} onChange={(event) => setCoaForm((prev) => ({ ...prev, purityPercent: event.target.value }))} />
+              <input className="input" placeholder="Lab Name" value={coaForm.labName} onChange={(event) => setCoaForm((prev) => ({ ...prev, labName: event.target.value }))} />
+              <input className="input" placeholder="Test Date" type="date" value={coaForm.testDate} onChange={(event) => setCoaForm((prev) => ({ ...prev, testDate: event.target.value }))} />
+              <input className="input" placeholder="PDF URL" value={coaForm.pdfUrl} onChange={(event) => setCoaForm((prev) => ({ ...prev, pdfUrl: event.target.value }))} />
+            </div>
+            <button className="btn-primary" onClick={onCreateCoa}>Save COA</button>
+            <div className="space-y-2">
+              {coaDocuments.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3 text-sm text-[var(--color-sand)]">
+                  <span>{doc.productName ?? doc.productId} | batch {doc.batchNumber} | {doc.purityPercent}%</span>
+                  <button className="text-xs text-red-300" onClick={() => onDeleteCoa(doc.id)}>Delete</button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {active === 'Shipping' ? (
+          <section className="space-y-4 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Shipping</h2>
+            <div className="grid gap-3 md:grid-cols-3">
+              <input className="input" placeholder="Name" value={shippingForm.name} onChange={(event) => setShippingForm((prev) => ({ ...prev, name: event.target.value }))} />
+              <input className="input" placeholder="Carrier" value={shippingForm.carrier} onChange={(event) => setShippingForm((prev) => ({ ...prev, carrier: event.target.value }))} />
+              <input className="input" placeholder="Price" type="number" value={shippingForm.price} onChange={(event) => setShippingForm((prev) => ({ ...prev, price: event.target.value }))} />
+              <input className="input" placeholder="ETA" value={shippingForm.eta} onChange={(event) => setShippingForm((prev) => ({ ...prev, eta: event.target.value }))} />
+              <input className="input" placeholder="Sort Order" type="number" value={shippingForm.sortOrder} onChange={(event) => setShippingForm((prev) => ({ ...prev, sortOrder: event.target.value }))} />
+              <input className="input" placeholder="Description" value={shippingForm.description} onChange={(event) => setShippingForm((prev) => ({ ...prev, description: event.target.value }))} />
+            </div>
+            <button className="btn-primary" onClick={onCreateShipping}>Save Shipping Method</button>
+            <div className="space-y-2">
+              {shippingMethods.map((method) => (
+                <div key={method.id} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3 text-sm text-[var(--color-sand)]">
+                  <span>{method.name} ({method.carrier}) | ${method.price.toFixed(2)} | {method.eta}</span>
+                  <button className="text-xs text-red-300" onClick={() => onDeleteShipping(method.id)}>Delete</button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {active === 'Age Gate Registrants' ? (
+          <section className="space-y-4 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Age Gate Registrants</h2>
+              <button className="btn-secondary" onClick={exportRegistrants}>Export CSV</button>
+            </div>
+            <input className="input" placeholder="Search by name or email" value={registrantSearch} onChange={(event) => setRegistrantSearch(event.target.value)} />
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm text-[var(--color-sand)]">
+                <thead>
+                  <tr className="border-b border-[var(--color-gold-soft)] text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">
+                    <th className="py-2 pr-3">First Name</th>
+                    <th className="py-2 pr-3">Email</th>
+                    <th className="py-2 pr-3">DOB</th>
+                    <th className="py-2 pr-3">Verified</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRegistrants.map((entry) => (
+                    <tr key={entry.id} className="border-b border-[var(--color-gold-soft)]/20">
+                      <td className="py-2 pr-3">{entry.firstName}</td>
+                      <td className="py-2 pr-3">{entry.email}</td>
+                      <td className="py-2 pr-3">{new Date(entry.dob).toLocaleDateString()}</td>
+                      <td className="py-2 pr-3">{new Date(entry.verifiedAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        {active === 'Legal / Content' ? (
+          <form
+            className="space-y-3 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5"
+            action={async (formData) => {
+              try {
+                await onUpdateLegal(formData);
+              } catch (error) {
+                setStatusMessage(error instanceof Error ? error.message : 'Failed to update legal page.');
+              }
+            }}
+          >
+            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Legal / Content</h2>
+            <select className="input" name="slug" required>
+              {legalPages.map((page) => (
+                <option key={page.slug} value={page.slug}>{page.slug}</option>
+              ))}
+            </select>
+            <input className="input" name="title" placeholder="Title" required />
+            <textarea className="input min-h-20" name="intro" placeholder="Intro" required />
+            <button className="rounded-full bg-[var(--color-gold)] px-6 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-ink)]" type="submit">Save Legal Page</button>
+          </form>
+        ) : null}
+
+        {active === 'Settings' ? (
+          <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Settings</h2>
+            <p className="mt-3 text-sm text-[var(--color-sand)]">Categories configured: {categories.length}</p>
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 };
 
-const statusOptions = ['pending', 'reviewing', 'approved', 'payment-sent', 'completed', 'cancelled'];
+const StatCard = ({ label, value }: { label: string; value: string }) => (
+  <article className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-4">
+    <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">{label}</p>
+    <p className="mt-2 font-serif text-3xl text-[var(--color-ivory)]">{value}</p>
+  </article>
+);
 
 const OrderRow = ({
   order,
@@ -219,6 +454,7 @@ const OrderRow = ({
     <div className="rounded-lg border border-[var(--color-gold-soft)] p-3">
       <p className="font-medium text-[var(--color-ivory)]">{order.orderReference}</p>
       <p className="text-xs text-[var(--color-sand)]">{order.email}</p>
+      <p className="text-xs text-[var(--color-muted)]">{new Date(order.createdAt).toLocaleString()}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         <select className="input max-w-[190px]" value={status} onChange={(event) => setStatus(event.target.value)}>
           {statusOptions.map((option) => (

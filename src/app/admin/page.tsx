@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
@@ -6,11 +7,15 @@ import { businessConfig } from '@/lib/config/business-config';
 import { categories } from '@/lib/data/site';
 import { hasDatabaseUrl } from '@/lib/db';
 import {
+  getAdminAgeGateRegistrants,
+  getAdminCoadocuments,
+  getAdminDiscountRules,
   ensureBaselineCatalogData,
   getAdminFaqs,
   getAdminLegalPages,
   getAdminOrderRequests,
   getAdminProducts,
+  getAdminShippingMethods,
 } from '@/lib/services/admin-data';
 
 export default async function AdminPage() {
@@ -20,11 +25,15 @@ export default async function AdminPage() {
 
   await ensureBaselineCatalogData();
 
-  const [products, faqs, legalPages, orders] = await Promise.all([
+  const [products, faqs, legalPages, orders, ageGateRegistrants, discountRules, coaDocuments, shippingMethods] = await Promise.all([
     getAdminProducts(),
     getAdminFaqs(),
     getAdminLegalPages(),
     getAdminOrderRequests(),
+    getAdminAgeGateRegistrants(),
+    getAdminDiscountRules(),
+    getAdminCoadocuments(),
+    getAdminShippingMethods(),
   ]);
 
   return (
@@ -34,10 +43,14 @@ export default async function AdminPage() {
         Manage catalog, legal content, and orders through a configurable admin workflow.
       </p>
       <div>
-        <a href="/admin/orders" className="btn-secondary">Open Orders Workspace</a>
+        <Link href="/admin/orders" className="btn-secondary">Open Orders Workspace</Link>
       </div>
       <AdminDashboard
         categories={categories.map((category) => ({ slug: category.slug, name: category.name }))}
+        ageGateRegistrants={ageGateRegistrants}
+        discountRules={discountRules}
+        coaDocuments={coaDocuments}
+        shippingMethods={shippingMethods}
         dbEnabled={hasDatabaseUrl}
         isClientMode={businessConfig.isClientMode}
         faqs={faqs.map((faq) => ({ id: (faq as { id?: string }).id ?? faq.question, question: faq.question, answer: faq.answer }))}
@@ -75,6 +88,7 @@ export default async function AdminPage() {
           price: product.price,
           stockQuantity: product.stockQuantity,
           isActive: product.isActive,
+          variants: product.variants,
         }))}
       />
     </div>

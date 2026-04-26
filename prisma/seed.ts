@@ -128,6 +128,54 @@ async function main() {
       },
     });
   }
+
+  const allProducts = await prisma.product.findMany({ select: { id: true, name: true, sku: true, price: true, compareAtPrice: true, stockQuantity: true } });
+  for (const [index, product] of allProducts.entries()) {
+    const existingVariant = await prisma.productVariant.findFirst({ where: { productId: product.id } });
+    if (existingVariant) continue;
+    await prisma.productVariant.create({
+      data: {
+        productId: product.id,
+        name: product.name,
+        sku: product.sku,
+        price: product.price,
+        compareAtPrice: product.compareAtPrice,
+        stock: product.stockQuantity,
+        active: true,
+        sortOrder: index,
+      },
+    });
+  }
+
+  const shippingDefaults = [
+    { name: 'USPS Priority', carrier: 'USPS', price: 9.95, eta: '2-4 business days', description: 'Tracked USPS priority shipping.', active: true, sortOrder: 1 },
+    { name: 'UPS Ground', carrier: 'UPS', price: 12.95, eta: '2-5 business days', description: 'Tracked UPS ground shipping.', active: true, sortOrder: 2 },
+  ];
+
+  for (const method of shippingDefaults) {
+    await prisma.shippingMethod.upsert({
+      where: { id: `${method.carrier}-${method.sortOrder}` },
+      update: {
+        name: method.name,
+        carrier: method.carrier,
+        price: method.price,
+        eta: method.eta,
+        description: method.description,
+        active: method.active,
+        sortOrder: method.sortOrder,
+      },
+      create: {
+        id: `${method.carrier}-${method.sortOrder}`,
+        name: method.name,
+        carrier: method.carrier,
+        price: method.price,
+        eta: method.eta,
+        description: method.description,
+        active: method.active,
+        sortOrder: method.sortOrder,
+      },
+    });
+  }
 }
 
 main()

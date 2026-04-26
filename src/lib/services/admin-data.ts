@@ -1,8 +1,10 @@
 import {
+  type DiscountType,
   type OrderStatus,
   type PaymentStatus,
-  type Prisma,
   type Product as PrismaProduct,
+  type ProductVariant as PrismaProductVariant,
+  Prisma,
 } from '@prisma/client';
 
 import { categories, faqs, legal, products } from '@/lib/data/site';
@@ -61,15 +63,38 @@ const toProduct = (product: PrismaProduct & { category: { slug: string } }) => (
   badge: product.badge ?? undefined,
   includesComplimentaryKit: product.includesComplimentaryKit,
   attributes: (product.attributes as Array<{ label: string; value: string }>) ?? [],
+  variants: [],
   isActive: product.isActive,
   isFeatured: product.isFeatured,
+});
+
+const toVariant = (variant: PrismaProductVariant) => ({
+  id: variant.id,
+  productId: variant.productId,
+  name: variant.name,
+  sku: variant.sku,
+  price: Number(variant.price),
+  compareAtPrice: variant.compareAtPrice ? Number(variant.compareAtPrice) : undefined,
+  stock: variant.stock,
+  active: variant.active,
+  imageOverride: variant.imageOverride ?? undefined,
+  sortOrder: variant.sortOrder,
 });
 
 export const getAdminProducts = async () => {
   if (!hasDatabaseUrl) return products;
   try {
-    const rows = await prisma!.product.findMany({ include: { category: true }, orderBy: { updatedAt: 'desc' } });
-    return rows.map(toProduct);
+    const rows = await prisma!.product.findMany({
+      include: { category: true, variants: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return rows.map((row) => {
+      const mapped = toProduct(row);
+      return {
+        ...mapped,
+        variants: row.variants.map(toVariant),
+      };
+    });
   } catch {
     return products;
   }
@@ -104,8 +129,15 @@ export const createAdminProduct = async (input: ProductInput) => {
     category: { connect: { id: category.id } },
   };
 
-  const created = await prisma!.product.create({ data, include: { category: true } });
-  return { ok: true, message: 'Product created.', product: toProduct(created) };
+  const created = await prisma!.product.create({ data, include: { category: true, variants: true } });
+  return {
+    ok: true,
+    message: 'Product created.',
+    product: {
+      ...toProduct(created),
+      variants: created.variants.map(toVariant),
+    },
+  };
 };
 
 export const updateAdminProduct = async (id: string, patch: Partial<ProductInput>) => {
@@ -140,8 +172,19 @@ export const updateAdminProduct = async (id: string, patch: Partial<ProductInput
     data.category = { connect: { id: category.id } };
   }
 
-  const updated = await prisma!.product.update({ where: { id }, data, include: { category: true } });
-  return { ok: true, message: 'Product updated.', product: toProduct(updated) };
+  const updated = await prisma!.product.update({
+    where: { id },
+    data,
+    include: { category: true, variants: true },
+  });
+  return {
+    ok: true,
+    message: 'Product updated.',
+    product: {
+      ...toProduct(updated),
+      variants: updated.variants.map(toVariant),
+    },
+  };
 };
 
 export const deleteAdminProduct = async (id: string) => {
@@ -161,11 +204,315 @@ export const getAdminProductById = async (id: string) => {
     return products.find((p) => p.id === id) ?? null;
   }
   try {
-    const row = await prisma!.product.findUnique({ where: { id }, include: { category: true } });
-    return row ? toProduct(row) : null;
+    const row = await prisma!.product.findUnique({
+      where: { id },
+      include: { category: true, variants: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
+    });
+    return row
+      ? {
+          ...toProduct(row),
+          variants: row.variants.map(toVariant),
+        }
+      : null;
   } catch {
     return null;
   }
+};
+
+export const getAdminProductVariants = async (productId: string) => {
+  if (!hasDatabaseUrl) return [];
+  return (await prisma!.productVariant.findMany({
+    where: { productId },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+  })).map(toVariant);
+};
+
+export const createAdminProductVariant = async (input: {
+  productId: string;
+  name: string;
+  sku: string;
+  price: number;
+  compareAtPrice?: number | null;
+  stock: number;
+  active?: boolean;
+  imageOverride?: string | null;
+  sortOrder?: number;
+}) => {
+  if (!hasDatabaseUrl) {
+    return { ok: false, message: 'DATABASE_URL not configured.' };
+  }
+
+  const created = await prisma!.productVariant.create({
+    data: {
+      productId: input.productId,
+      name: input.name,
+      sku: input.sku,
+      price: input.price,
+      compareAtPrice: input.compareAtPrice ?? null,
+      stock: input.stock,
+      active: input.active ?? true,
+      imageOverride: input.imageOverride ?? null,
+      sortOrder: input.sortOrder ?? 0,
+    },
+  });
+
+  return { ok: true, data: toVariant(created) };
+};
+
+export const updateAdminProductVariant = async (
+  id: string,
+  patch: Partial<{
+    name: string;
+    sku: string;
+    price: number;
+    compareAtPrice: number | null;
+    stock: number;
+    active: boolean;
+    imageOverride: string | null;
+    sortOrder: number;
+  }>,
+) => {
+  if (!hasDatabaseUrl) {
+    return { ok: false, message: 'DATABASE_URL not configured.' };
+  }
+
+  const updated = await prisma!.productVariant.update({ where: { id }, data: patch });
+  return { ok: true, data: toVariant(updated) };
+};
+
+export const deleteAdminProductVariant = async (id: string) => {
+  if (!hasDatabaseUrl) {
+    return { ok: false, message: 'DATABASE_URL not configured.' };
+  }
+  await prisma!.productVariant.delete({ where: { id } });
+  return { ok: true };
+};
+
+const toDiscountType = (value: 'percent' | 'fixed'): DiscountType =>
+  value === 'percent' ? 'PERCENT' : 'FIXED';
+
+const fromDiscountType = (value: DiscountType): 'percent' | 'fixed' =>
+  value === 'PERCENT' ? 'percent' : 'fixed';
+
+export const getAdminDiscountRules = async () => {
+  if (!hasDatabaseUrl) return [];
+  try {
+    const rows = await prisma!.discountRule.findMany({ orderBy: { updatedAt: 'desc' } });
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      type: fromDiscountType(row.type),
+      minQuantity: row.minQuantity,
+      value: Number(row.value),
+      eligibleProductIds: (row.eligibleProductIds as string[] | null) ?? undefined,
+      eligibleCategoryIds: (row.eligibleCategoryIds as string[] | null) ?? undefined,
+      active: row.active,
+      code: row.code ?? undefined,
+    }));
+  } catch {
+    return [];
+  }
+};
+
+export const upsertAdminDiscountRule = async (input: {
+  id?: string;
+  name: string;
+  type: 'percent' | 'fixed';
+  minQuantity: number;
+  value: number;
+  eligibleProductIds?: string[];
+  eligibleCategoryIds?: string[];
+  active: boolean;
+  code?: string;
+}) => {
+  if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
+  const data = {
+    name: input.name,
+    type: toDiscountType(input.type),
+    minQuantity: input.minQuantity,
+    value: input.value,
+    eligibleProductIds: input.eligibleProductIds && input.eligibleProductIds.length > 0 ? input.eligibleProductIds : Prisma.JsonNull,
+    eligibleCategoryIds: input.eligibleCategoryIds && input.eligibleCategoryIds.length > 0 ? input.eligibleCategoryIds : Prisma.JsonNull,
+    active: input.active,
+    code: input.code || null,
+  };
+
+  const row = input.id
+    ? await prisma!.discountRule.update({ where: { id: input.id }, data })
+    : await prisma!.discountRule.create({ data });
+
+  return { ok: true, id: row.id };
+};
+
+export const deleteAdminDiscountRule = async (id: string) => {
+  if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
+  await prisma!.discountRule.delete({ where: { id } });
+  return { ok: true };
+};
+
+export const getAdminCoadocuments = async () => {
+  if (!hasDatabaseUrl) return [];
+  try {
+    const rows = await prisma!.cOADocument.findMany({ include: { product: true }, orderBy: { updatedAt: 'desc' } });
+    return rows.map((row) => ({
+      id: row.id,
+      productId: row.productId,
+      productName: row.product.name,
+      batchNumber: row.batchNumber,
+      purityPercent: Number(row.purityPercent),
+      labName: row.labName,
+      testDate: row.testDate.toISOString(),
+      pdfUrl: row.pdfUrl,
+      active: row.active,
+    }));
+  } catch {
+    return [];
+  }
+};
+
+export const getPublicCoadocuments = async (productId?: string) => {
+  if (!hasDatabaseUrl) return [];
+  try {
+    const rows = await prisma!.cOADocument.findMany({
+      where: {
+        active: true,
+        ...(productId ? { productId } : {}),
+      },
+      include: { product: true },
+      orderBy: { testDate: 'desc' },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      productId: row.productId,
+      productName: row.product.name,
+      batchNumber: row.batchNumber,
+      purityPercent: Number(row.purityPercent),
+      labName: row.labName,
+      testDate: row.testDate.toISOString(),
+      pdfUrl: row.pdfUrl,
+      active: row.active,
+    }));
+  } catch {
+    return [];
+  }
+};
+
+export const upsertAdminCoadocument = async (input: {
+  id?: string;
+  productId: string;
+  batchNumber: string;
+  purityPercent: number;
+  labName: string;
+  testDate: string;
+  pdfUrl: string;
+  active: boolean;
+}) => {
+  if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
+  const data = {
+    productId: input.productId,
+    batchNumber: input.batchNumber,
+    purityPercent: input.purityPercent,
+    labName: input.labName,
+    testDate: new Date(input.testDate),
+    pdfUrl: input.pdfUrl,
+    active: input.active,
+  };
+  const row = input.id
+    ? await prisma!.cOADocument.update({ where: { id: input.id }, data })
+    : await prisma!.cOADocument.create({ data });
+  return { ok: true, id: row.id };
+};
+
+export const deleteAdminCoadocument = async (id: string) => {
+  if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
+  await prisma!.cOADocument.delete({ where: { id } });
+  return { ok: true };
+};
+
+export const getAdminShippingMethods = async () => {
+  if (!hasDatabaseUrl) return [];
+  try {
+    const rows = await prisma!.shippingMethod.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      carrier: row.carrier,
+      price: Number(row.price),
+      eta: row.eta,
+      description: row.description,
+      active: row.active,
+      sortOrder: row.sortOrder,
+    }));
+  } catch {
+    return [];
+  }
+};
+
+export const upsertAdminShippingMethod = async (input: {
+  id?: string;
+  name: string;
+  carrier: string;
+  price: number;
+  eta: string;
+  description: string;
+  active: boolean;
+  sortOrder: number;
+}) => {
+  if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
+  const data = {
+    name: input.name,
+    carrier: input.carrier,
+    price: input.price,
+    eta: input.eta,
+    description: input.description,
+    active: input.active,
+    sortOrder: input.sortOrder,
+  };
+  const row = input.id
+    ? await prisma!.shippingMethod.update({ where: { id: input.id }, data })
+    : await prisma!.shippingMethod.create({ data });
+  return { ok: true, id: row.id };
+};
+
+export const deleteAdminShippingMethod = async (id: string) => {
+  if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
+  await prisma!.shippingMethod.delete({ where: { id } });
+  return { ok: true };
+};
+
+export const getAdminAgeGateRegistrants = async () => {
+  if (!hasDatabaseUrl) return [];
+  try {
+    const rows = await prisma!.ageGateRegistrant.findMany({ orderBy: { createdAt: 'desc' } });
+    return rows.map((row) => ({
+      id: row.id,
+      firstName: row.firstName,
+      email: row.email,
+      dob: row.dob.toISOString(),
+      verifiedAt: row.verifiedAt.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    }));
+  } catch {
+    return [];
+  }
+};
+
+export const createAgeGateRegistrant = async (input: {
+  firstName: string;
+  email: string;
+  dob: string;
+  verifiedAt: string;
+}) => {
+  if (!hasDatabaseUrl) return { ok: true };
+  await prisma!.ageGateRegistrant.create({
+    data: {
+      firstName: input.firstName,
+      email: input.email,
+      dob: new Date(input.dob),
+      verifiedAt: new Date(input.verifiedAt),
+    },
+  });
+  return { ok: true };
 };
 
 export const getAdminFaqs = async () => {

@@ -6,10 +6,10 @@ export default function ContactPage() {
     <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr]">
       <aside className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-6">
         <h1 className="section-title">Contact</h1>
-        <p className="mt-3 text-[var(--color-sand)]">Reach the operations team for order and account inquiries.</p>
+        <p className="mt-3 text-[var(--color-sand)]">Will reply within 24 hours upon sending inquiries.</p>
         <ul className="mt-6 space-y-2 text-sm text-[var(--color-sand)]">
+          <li>{siteConfig.infoEmail}</li>
           <li>{siteConfig.supportEmail}</li>
-          <li>{siteConfig.supportPhone}</li>
           <li>{siteConfig.supportAddress}</li>
         </ul>
       </aside>

@@ -5,7 +5,7 @@ import { siteConfig } from '@/lib/config/site-config';
 export const brand = {
   name: siteConfig.brandName,
   email: siteConfig.supportEmail,
-  phone: siteConfig.supportPhone,
+  infoEmail: siteConfig.infoEmail,
   address: siteConfig.supportAddress,
 };
 
@@ -489,39 +489,46 @@ export const faqs: FaqItem[] = [
 
 export const paymentMethods: PaymentMethod[] = [
   {
-    id: 'invoice-request',
-    label: 'Invoice Request',
-    description: 'Receive a formal invoice or payable request after review.',
+    id: 'paypal',
+    label: 'PayPal',
+    description: 'Receive invoice/payment instructions for PayPal after order review.',
     enabled: true,
     mode: 'invoice',
   },
   {
-    id: 'external-payment-method',
-    label: 'External Payment Method',
-    description: 'Provide a preferred external payment option for follow-up instructions.',
+    id: 'venmo',
+    label: 'Venmo',
+    description: 'Receive Venmo payment instructions after order review.',
     enabled: true,
     mode: 'manual',
   },
   {
-    id: 'manual-payment-instructions',
-    label: 'Manual Payment Instructions',
-    description: 'Receive direct payment instructions after order review and confirmation.',
+    id: 'cash-app',
+    label: 'Cash App',
+    description: 'Receive Cash App payment instructions after order review.',
     enabled: true,
     mode: 'manual',
   },
   {
-    id: 'processor-placeholder',
-    label: 'Additional Processor (Coming Soon)',
-    description: 'Reserved for future integrations without active checkout processing.',
-    enabled: false,
-    mode: 'placeholder',
+    id: 'chime',
+    label: 'Chime',
+    description: 'Receive Chime transfer instructions after order review.',
+    enabled: true,
+    mode: 'manual',
   },
   {
-    id: 'card-placeholder',
-    label: 'Card Processing (Coming Soon)',
-    description: 'Placeholder for future merchant-approved card processor.',
-    enabled: false,
-    mode: 'placeholder',
+    id: 'zelle',
+    label: 'Zelle',
+    description: 'Receive Zelle payment instructions after order review.',
+    enabled: true,
+    mode: 'manual',
+  },
+  {
+    id: 'apple-pay',
+    label: 'Apple Pay',
+    description: 'Receive Apple Pay-compatible instructions after order review.',
+    enabled: true,
+    mode: 'manual',
   },
 ];
 

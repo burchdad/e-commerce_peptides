@@ -12,6 +12,21 @@ export const ProductPurchasePanel = ({ product }: { product: Product }) => {
   const [quantity, setQuantity] = useState(1);
   const [accepted, setAccepted] = useState(false);
   const [added, setAdded] = useState(false);
+  const availableVariants = (product.variants ?? []).filter((variant) => variant.active);
+  const [selectedVariantId, setSelectedVariantId] = useState(availableVariants[0]?.id ?? `${product.id}-default`);
+
+  const selectedVariant =
+    availableVariants.find((variant) => variant.id === selectedVariantId) ??
+    {
+      id: `${product.id}-default`,
+      productId: product.id,
+      name: product.name,
+      sku: product.sku,
+      price: product.price,
+      compareAtPrice: product.compareAtPrice,
+      stock: product.stockQuantity,
+      active: true,
+    };
 
   const updateQuantity = (nextQuantity: number) => {
     setQuantity(Math.max(1, nextQuantity));
@@ -20,7 +35,7 @@ export const ProductPurchasePanel = ({ product }: { product: Product }) => {
   const onAddToCart = () => {
     if (!accepted) return;
 
-    addItem(product.id, quantity);
+    addItem(product.id, selectedVariant.id, quantity);
     setAdded(true);
   };
 
@@ -32,8 +47,24 @@ export const ProductPurchasePanel = ({ product }: { product: Product }) => {
       <p className="mt-5 text-[var(--color-muted)]">{product.shortDescription}</p>
 
       <div className="mt-6 flex items-end gap-3">
-        <p className="font-serif text-4xl text-[var(--color-text)]">{currency(product.price)}</p>
-        {product.compareAtPrice ? <p className="pb-1 text-[var(--color-muted)] line-through">{currency(product.compareAtPrice)}</p> : null}
+        <p className="font-serif text-4xl text-[var(--color-text)]">{currency(selectedVariant.price)}</p>
+        {selectedVariant.compareAtPrice ? <p className="pb-1 text-[var(--color-muted)] line-through">{currency(selectedVariant.compareAtPrice)}</p> : null}
+      </div>
+
+      <div className="mt-6">
+        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Variant</label>
+        <select
+          className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-depth)_74%,var(--color-brand-red)_26%)] p-3 text-sm text-[var(--color-text)]"
+          value={selectedVariantId}
+          onChange={(event) => setSelectedVariantId(event.target.value)}
+        >
+          {(availableVariants.length > 0 ? availableVariants : [selectedVariant]).map((variant) => (
+            <option key={variant.id} value={variant.id}>
+              {variant.name} - {currency(variant.price)}
+            </option>
+          ))}
+        </select>
+        <p className="mt-2 text-xs text-[var(--color-muted)]">Stock: {selectedVariant.stock}</p>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">

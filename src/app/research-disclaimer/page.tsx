@@ -6,7 +6,7 @@ export default function ResearchDisclaimerPage() {
   return (
     <div className="space-y-6">
       <h1 className="section-title">{content.title}</h1>
-      <p className="text-[var(--color-sand)]">{content.intro}</p>
+      <p className="text-[var(--color-sand)]">DISCLAIMER: All products on this site are for Research, Development use only. Products are Not for Human use of any kind. The statements made within this website have not been evaluated by the US Food and Drug Administration. The statements and the products of this company are not intended to diagnose, treat, cure or prevent any disease.</p>
       <div className="space-y-4">
         {content.sections.map((section) => (
           <article key={section.heading} className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">

@@ -1,8 +1,10 @@
 import { CheckoutForm } from '@/components/forms/checkout-form';
+import { DisclaimerNotice } from '@/components/ui/disclaimer-notice';
+import { getAdminDiscountRules } from '@/lib/services/admin-data';
 import { fetchAllProducts } from '@/lib/utils/catalog';
 
 export default async function CheckoutPage() {
-  const catalog = await fetchAllProducts();
+  const [catalog, discountRules] = await Promise.all([fetchAllProducts(), getAdminDiscountRules()]);
 
   return (
     <div className="space-y-6">
@@ -11,7 +13,8 @@ export default async function CheckoutPage() {
       <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm text-[var(--color-text)]">
         Payment instructions will be sent after order confirmation.
       </p>
-      <CheckoutForm catalog={catalog} />
+      <CheckoutForm catalog={catalog} discountRules={discountRules} />
+      <DisclaimerNotice />
     </div>
   );
 }

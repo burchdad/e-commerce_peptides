@@ -2,12 +2,12 @@ const pick = (inlined: string | undefined, fallback: string) =>
   inlined && inlined.trim().length > 0 ? inlined : fallback;
 
 export const siteConfig = {
-  brandName:       pick(process.env.NEXT_PUBLIC_BRAND_NAME,           'Brand Name'),
-  supportEmail:    pick(process.env.NEXT_PUBLIC_SUPPORT_EMAIL,        'support@example.com'),
+  brandName:       pick(process.env.NEXT_PUBLIC_BRAND_NAME,           'Peppers & Vibes'),
+  supportEmail:    pick(process.env.NEXT_PUBLIC_SUPPORT_EMAIL,        'support@peppersandvibes.com'),
+  infoEmail:       pick(process.env.NEXT_PUBLIC_INFO_EMAIL,           'info@peppersandvibes.com'),
   domain:          pick(process.env.NEXT_PUBLIC_DOMAIN,               'example.com'),
   currency:        pick(process.env.NEXT_PUBLIC_CURRENCY,             'USD'),
-  supportPhone:    pick(process.env.NEXT_PUBLIC_SUPPORT_PHONE,        '+1 (800) 555-0199'),
-  supportAddress:  pick(process.env.NEXT_PUBLIC_SUPPORT_ADDRESS,      '123 Business Ave, Suite 100'),
+  supportAddress:  pick(process.env.NEXT_PUBLIC_SUPPORT_ADDRESS,      '8092 S Yale #1057, Tulsa, OK 74136, United States'),
   logos: {
     primary:   pick(process.env.NEXT_PUBLIC_LOGO_PRIMARY, '/images/brand/logo-primary.png'),
     alternate: pick(process.env.NEXT_PUBLIC_LOGO_ALT,     '/images/brand/logo-alt.png'),

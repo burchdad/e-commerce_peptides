@@ -23,6 +23,11 @@ enum PaymentStatus {
   VOID
 }
 
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
 model Category {
   id          String    @id @default(cuid())
   name        String
@@ -53,8 +58,29 @@ model Product {
   isFeatured                 Boolean  @default(false)
   categoryId                 String
   category                   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants                   ProductVariant[]
+  coaDocuments               COADocument[]
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
+}
+
+model ProductVariant {
+  id             String    @id @default(cuid())
+  productId      String
+  name           String
+  sku            String    @unique
+  price          Decimal   @db.Decimal(10, 2)
+  compareAtPrice Decimal?  @db.Decimal(10, 2)
+  stock          Int       @default(0)
+  active         Boolean   @default(true)
+  imageOverride  String?
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems     OrderItem[]
+
+  @@index([productId])
 }
 
 model Faq {
@@ -98,6 +124,60 @@ model PaymentMethodConfig {
   createdAt   DateTime @default(now())
 }
 
+model DiscountRule {
+  id                  String       @id @default(cuid())
+  name                String
+  type                DiscountType
+  minQuantity         Int          @default(1)
+  value               Decimal      @db.Decimal(10, 2)
+  eligibleProductIds  Json?
+  eligibleCategoryIds Json?
+  active              Boolean      @default(true)
+  code                String?      @unique
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+}
+
+model COADocument {
+  id           String   @id @default(cuid())
+  productId    String
+  batchNumber  String
+  purityPercent Decimal @db.Decimal(5, 2)
+  labName      String
+  testDate     DateTime
+  pdfUrl       String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ShippingMethod {
+  id          String   @id @default(cuid())
+  name        String
+  carrier     String
+  price       Decimal  @db.Decimal(10, 2)
+  eta         String
+  description String
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AgeGateRegistrant {
+  id         String   @id @default(cuid())
+  firstName  String
+  email      String
+  dob        DateTime
+  verifiedAt DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+}
+
 model OrderRequest {
   id                    String        @id @default(cuid())
   orderReference        String        @unique
@@ -131,11 +211,14 @@ model OrderItem {
   id             String       @id @default(cuid())
   orderRequestId String
   productId      String?
+  productVariantId String?
   productName    String
+  variantName    String?
   sku            String?
   quantity       Int
   unitPrice      Decimal      @db.Decimal(10, 2)
   createdAt      DateTime     @default(now())
 
   orderRequest   OrderRequest @relation(fields: [orderRequestId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: SetNull)
 }

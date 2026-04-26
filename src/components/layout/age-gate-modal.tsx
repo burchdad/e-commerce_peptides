@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 const STORAGE_KEY = 'pv-age-gate-v2';
 const EXPIRY_DAYS = 30;
-const MIN_AGE = 18;
+const MIN_AGE = 21;
 
 const COOKIE_KEY = 'pv_age_gate_expires';
 
@@ -65,12 +65,28 @@ const calculateAge = (dob: string): number => {
 
 export const AgeGateModal = () => {
   const [open, setOpen] = useState(() => !isVerified());
+  const [firstName, setFirstName] = useState('');
+  const [email, setEmail] = useState('');
   const [dob, setDob] = useState('');
+  const [confirmed21Plus, setConfirmed21Plus] = useState(false);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleContinue = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleContinue = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!firstName.trim()) {
+      setError('Please enter your first name.');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    if (!confirmed21Plus) {
+      setError('You must confirm that you are 21+ years old.');
+      return;
+    }
     if (!dob) {
       setError('Please enter your date of birth.');
       return;
@@ -84,6 +100,18 @@ export const AgeGateModal = () => {
       setError(`You must be at least ${MIN_AGE} years old to access this site.`);
       return;
     }
+    setSubmitting(true);
+    await fetch('/api/age-gate/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: firstName.trim(),
+        email: email.trim(),
+        dob,
+        verifiedAt: new Date().toISOString(),
+      }),
+    }).catch(() => null);
+    setSubmitting(false);
     storeVerification();
     setOpen(false);
   };
@@ -105,12 +133,39 @@ export const AgeGateModal = () => {
       >
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)]">Age Verification Required</p>
         <h2 id="age-gate-title" className="mt-3 font-serif text-3xl text-[var(--color-ivory)]">
-          Confirm Your Age
+          Age Verification Required
         </h2>
         <p className="mt-4 text-sm text-[var(--color-sand)]">
-          This site is restricted to individuals {MIN_AGE} years of age or older. All products are
-          intended for research purposes only.
+          You must be 21 years of age or older to access this website and purchase products.
         </p>
+
+        <div className="mt-5 space-y-4">
+          <label className="block text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
+            First Name
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => {
+                setFirstName(e.target.value);
+                setError('');
+              }}
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-4 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)]"
+            />
+          </label>
+
+          <label className="block text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
+            Email Address
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError('');
+              }}
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-4 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)]"
+            />
+          </label>
+        </div>
 
         <div className="mt-6">
           <label htmlFor="dob" className="block text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
@@ -129,12 +184,26 @@ export const AgeGateModal = () => {
           )}
         </div>
 
+        <label className="mt-4 flex items-start gap-2 text-xs text-[var(--color-sand)]">
+          <input
+            type="checkbox"
+            checked={confirmed21Plus}
+            onChange={(e) => {
+              setConfirmed21Plus(e.target.checked);
+              setError('');
+            }}
+            className="mt-0.5 h-4 w-4 accent-[var(--color-gold)]"
+          />
+          <span>I affirm that I am 21 years old or older.</span>
+        </label>
+
         <div className="mt-6 flex gap-3">
           <button
             type="submit"
+            disabled={submitting}
             className="flex-1 rounded-full bg-[var(--color-gold)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-ink)] transition hover:brightness-110"
           >
-            Continue
+            {submitting ? 'Saving...' : 'Continue'}
           </button>
           <button
             type="button"

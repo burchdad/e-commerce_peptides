@@ -12,6 +12,9 @@ export const ProductCard = ({ product }: { product: Product }) => {
   const { addItem } = useCart();
   const [ack, setAck] = useState(false);
   const secondaryImage = product.images.hover ?? product.images.gallery?.[0];
+  const defaultVariant = (product.variants ?? []).find((variant) => variant.active) ?? {
+    id: `${product.id}-default`,
+  };
 
   return (
     <article className="group premium-surface rounded-[1.35rem] p-4 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.34)]">
@@ -65,7 +68,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
         <button
           className="flex-1 rounded-xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-depth)_75%,var(--color-brand-red)_25%)] px-4 py-3 text-sm uppercase tracking-[0.14em] text-[var(--color-text)] transition hover:border-[var(--color-gold)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!ack}
-          onClick={() => addItem(product.id, 1)}
+          onClick={() => addItem(product.id, defaultVariant.id, 1)}
         >
           Add to Cart
         </button>

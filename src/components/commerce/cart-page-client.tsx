@@ -11,7 +11,7 @@ import { currency } from '@/lib/utils/format';
 export const CartPageClient = ({ catalog }: { catalog: Product[] }) => {
   const { resolveItems, updateQuantity, removeItem } = useCart();
   const resolved = useMemo(() => resolveItems(catalog), [resolveItems, catalog]);
-  const subtotal = resolved.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotal = resolved.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
 
   return (
     <div className="space-y-6">
@@ -25,7 +25,7 @@ export const CartPageClient = ({ catalog }: { catalog: Product[] }) => {
         <>
           <div className="space-y-4">
             {resolved.map((item) => (
-              <div key={item.product.id} className="premium-surface-soft rounded-[1.5rem] p-4">
+              <div key={`${item.product.id}:${item.variant.id}`} className="premium-surface-soft rounded-[1.5rem] p-4">
                 <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
                   <div className="flex items-start gap-4">
                     <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
@@ -39,15 +39,16 @@ export const CartPageClient = ({ catalog }: { catalog: Product[] }) => {
                     </div>
                     <div>
                       <h2 className="font-serif text-2xl text-[var(--color-text)]">{item.product.name}</h2>
-                      <p className="text-sm text-[var(--color-muted)]">{currency(item.product.price)} each</p>
-                      <p className="mt-1 text-sm text-[var(--color-muted)]">Line total: {currency(item.product.price * item.quantity)}</p>
+                      <p className="text-sm text-[var(--color-muted)]">{item.variant.name}</p>
+                      <p className="text-sm text-[var(--color-muted)]">{currency(item.variant.price)} each</p>
+                      <p className="mt-1 text-sm text-[var(--color-muted)]">Line total: {currency(item.variant.price * item.quantity)}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">
-                    <button className="h-11 w-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-lg text-[var(--color-text)] transition hover:border-[var(--color-gold)]" onClick={() => updateQuantity(item.product.id, item.quantity - 1)} aria-label={`Decrease quantity for ${item.product.name}`}>−</button>
+                    <button className="h-11 w-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-lg text-[var(--color-text)] transition hover:border-[var(--color-gold)]" onClick={() => updateQuantity(item.product.id, item.variant.id, item.quantity - 1)} aria-label={`Decrease quantity for ${item.product.name}`}>−</button>
                     <span className="min-w-10 text-center text-base font-semibold text-[var(--color-text)]">{item.quantity}</span>
-                    <button className="h-11 w-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-lg text-[var(--color-text)] transition hover:border-[var(--color-gold)]" onClick={() => updateQuantity(item.product.id, item.quantity + 1)} aria-label={`Increase quantity for ${item.product.name}`}>+</button>
-                    <button className="h-11 rounded-xl border border-red-800/60 px-4 text-sm font-medium text-red-300 transition hover:bg-red-900/20 md:ml-3" onClick={() => removeItem(item.product.id)}>Remove</button>
+                    <button className="h-11 w-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-lg text-[var(--color-text)] transition hover:border-[var(--color-gold)]" onClick={() => updateQuantity(item.product.id, item.variant.id, item.quantity + 1)} aria-label={`Increase quantity for ${item.product.name}`}>+</button>
+                    <button className="h-11 rounded-xl border border-red-800/60 px-4 text-sm font-medium text-red-300 transition hover:bg-red-900/20 md:ml-3" onClick={() => removeItem(item.product.id, item.variant.id)}>Remove</button>
                   </div>
                 </div>
               </div>

@@ -31,16 +31,16 @@ export const Hero = () => {
       <div className="absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.2),transparent_70%)]" />
 
       <div className="relative max-w-3xl animate-fade-in">
-        <p className="text-xs uppercase tracking-[0.34em] text-[var(--color-gold)]">Clinical Luxury Research Supply</p>
+        <p className="text-xs uppercase tracking-[0.34em] text-[var(--color-gold)]">Quality Clinical Research Supply</p>
         <h1 className="mt-4 font-serif text-4xl leading-tight text-white md:text-6xl">
-          Premium Peptide Access With a Trust-First Laboratory Experience.
+          Premium Peptide Access Built for Serious Research Environments.
         </h1>
         <p className="mt-6 max-w-2xl text-base text-white/85 md:text-lg">
-          Refined GLP catalog standards, transparent policies, and a complimentary research kit with qualifying peptide orders.
+          Refined Peptide Collection standards, transparent policies, and a complimentary research kit with qualifying peptide orders.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
           <Link className="btn-primary" href="/shop/glp-products">
-            Shop GLP Products
+            Shop Peptides
           </Link>
           <Link className="btn-secondary border-[var(--color-gold)] bg-[rgba(0,0,0,0.2)] text-white hover:bg-[rgba(0,0,0,0.35)]" href="/complimentary-kit">
             View Complimentary Kit

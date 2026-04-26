@@ -39,6 +39,14 @@ export default async function Home() {
 
       <KitShowcase />
 
+      <section className="premium-surface-soft rounded-[1.7rem] p-7 lg:p-9">
+        <p className="text-xs uppercase tracking-[0.25em] text-[var(--color-gold)]">Complimentary Kit</p>
+        <h2 className="section-title mt-2">Research Support Included</h2>
+        <p className="mt-3 max-w-3xl text-sm text-[var(--color-muted)]">
+          Every qualifying peptide order includes a complimentary research support kit.
+        </p>
+      </section>
+
       <TransparencySection />
 
       <section className="premium-surface-deep relative overflow-hidden rounded-[1.7rem] p-7 lg:p-9">

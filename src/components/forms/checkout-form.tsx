@@ -9,7 +9,8 @@ import { LegalAcknowledgement } from '@/components/forms/legal-acknowledgement';
 import { PaymentMethodSelector } from '@/components/forms/payment-method-selector';
 import { useCart } from '@/context/cart-context';
 import { paymentMethods } from '@/lib/data/site';
-import type { OrderAcknowledgements, Product } from '@/lib/types';
+import type { DiscountRule, OrderAcknowledgements, Product } from '@/lib/types';
+import { computeDiscount } from '@/lib/utils/discounts';
 
 const defaultAcknowledgements: OrderAcknowledgements = {
   informationAccurate: false,
@@ -32,7 +33,7 @@ const defaultFormState = {
 
 const stepLabels = ['Customer Info', 'Address', 'Acknowledgements', 'Payment Preference', 'Review & Submit'];
 
-export const CheckoutForm = ({ catalog }: { catalog: Product[] }) => {
+export const CheckoutForm = ({ catalog, discountRules }: { catalog: Product[]; discountRules: DiscountRule[] }) => {
   const router = useRouter();
   const { resolveItems, clearCart } = useCart();
   const [step, setStep] = useState(0);
@@ -42,9 +43,11 @@ export const CheckoutForm = ({ catalog }: { catalog: Product[] }) => {
   const [selectedMethod, setSelectedMethod] = useState(
     paymentMethods.find((method) => method.enabled)?.id ?? '',
   );
+  const [discountCode, setDiscountCode] = useState('');
   const [acknowledgements, setAcknowledgements] = useState(defaultAcknowledgements);
 
   const resolved = useMemo(() => resolveItems(catalog), [resolveItems, catalog]);
+  const pricing = useMemo(() => computeDiscount({ items: resolved, rules: discountRules, code: discountCode }), [resolved, discountRules, discountCode]);
 
   const updateField = (field: keyof typeof defaultFormState, value: string) => {
     setFormState((current) => ({ ...current, [field]: value }));
@@ -113,9 +116,11 @@ export const CheckoutForm = ({ catalog }: { catalog: Product[] }) => {
         acknowledgements,
         items: resolved.map((item) => ({
           productId: item.product.id,
+          productVariantId: item.variant.id,
           productName: item.product.name,
-          sku: item.product.sku,
-          unitPrice: item.product.price,
+          variantName: item.variant.name,
+          sku: item.variant.sku,
+          unitPrice: item.variant.price,
           quantity: item.quantity,
         })),
       }),
@@ -199,6 +204,11 @@ export const CheckoutForm = ({ catalog }: { catalog: Product[] }) => {
         {step === 4 ? (
           <div className="premium-surface-deep rounded-[1.4rem] p-6">
             <h2 className="font-serif text-2xl text-[var(--color-text)]">Review & Submit</h2>
+            <div className="mt-4">
+              <label className="text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Discount code</label>
+              <input className="input mt-2" placeholder="Enter code" value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} />
+              {pricing.appliedRule ? <p className="mt-2 text-xs text-[var(--color-sand)]">Applied: {pricing.appliedRule.name}</p> : null}
+            </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-4 text-sm text-[var(--color-muted)]">
                 <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-gold)]">Customer</p>
@@ -237,7 +247,7 @@ export const CheckoutForm = ({ catalog }: { catalog: Product[] }) => {
         {message ? <p className="text-sm text-red-600">{message}</p> : null}
       </div>
 
-      <CheckoutSummary items={resolved} />
+      <CheckoutSummary items={resolved} pricing={pricing} />
     </div>
   );
 };

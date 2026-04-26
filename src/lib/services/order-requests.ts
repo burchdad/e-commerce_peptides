@@ -302,7 +302,9 @@ const toStoredOrderFromDb = (row: {
   updatedAt: Date;
   items: Array<{
     productId: string | null;
+    productVariantId: string | null;
     productName: string;
+    variantName: string | null;
     sku: string | null;
     quantity: number;
     unitPrice: { toString(): string } | number;
@@ -332,7 +334,9 @@ const toStoredOrderFromDb = (row: {
       acknowledgements: extractAcknowledgements(row.acknowledgements),
       items: row.items.map((item) => ({
         productId: item.productId ?? undefined,
+        productVariantId: item.productVariantId ?? undefined,
         productName: item.productName,
+        variantName: item.variantName ?? undefined,
         sku: item.sku ?? undefined,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
@@ -367,7 +371,9 @@ export const createOrderRequestRecord = async (order: OrderRequest) => {
           items: {
             create: order.items.map((item) => ({
               productId: item.productId,
+              productVariantId: item.productVariantId,
               productName: item.productName,
+              variantName: item.variantName,
               sku: item.sku,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
