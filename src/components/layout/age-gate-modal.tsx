@@ -231,7 +231,7 @@ export const AgeGateModal = () => {
         aria-labelledby="age-gate-title"
         onSubmit={handleContinue}
         method="post"
-        action=""
+        action="/api/age-gate/submit"
         className="w-full max-w-md rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-8 shadow-2xl"
       >
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)]">Age Verification Required</p>

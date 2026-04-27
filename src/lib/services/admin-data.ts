@@ -77,6 +77,7 @@ const toVariant = (variant: PrismaProductVariant) => ({
   compareAtPrice: variant.compareAtPrice ? Number(variant.compareAtPrice) : undefined,
   stock: variant.stock,
   active: variant.active,
+  isDefault: variant.isDefault,
   imageOverride: variant.imageOverride ?? undefined,
   sortOrder: variant.sortOrder,
 });
@@ -235,6 +236,7 @@ export const createAdminProductVariant = async (input: {
   compareAtPrice?: number | null;
   stock: number;
   active?: boolean;
+  isDefault?: boolean;
   imageOverride?: string | null;
   sortOrder?: number;
 }) => {
@@ -242,18 +244,31 @@ export const createAdminProductVariant = async (input: {
     return { ok: false, message: 'DATABASE_URL not configured.' };
   }
 
-  const created = await prisma!.productVariant.create({
-    data: {
-      productId: input.productId,
-      name: input.name,
-      sku: input.sku,
-      price: input.price,
-      compareAtPrice: input.compareAtPrice ?? null,
-      stock: input.stock,
-      active: input.active ?? true,
-      imageOverride: input.imageOverride ?? null,
-      sortOrder: input.sortOrder ?? 0,
-    },
+  const created = await prisma!.$transaction(async (tx) => {
+    const existingCount = await tx.productVariant.count({ where: { productId: input.productId } });
+    const nextIsDefault = input.isDefault === true || existingCount === 0;
+
+    if (nextIsDefault) {
+      await tx.productVariant.updateMany({
+        where: { productId: input.productId },
+        data: { isDefault: false },
+      });
+    }
+
+    return tx.productVariant.create({
+      data: {
+        productId: input.productId,
+        name: input.name,
+        sku: input.sku,
+        price: input.price,
+        compareAtPrice: input.compareAtPrice ?? null,
+        stock: input.stock,
+        active: input.active ?? true,
+        isDefault: nextIsDefault,
+        imageOverride: input.imageOverride ?? null,
+        sortOrder: input.sortOrder ?? 0,
+      },
+    });
   });
 
   return { ok: true, data: toVariant(created) };
@@ -268,6 +283,7 @@ export const updateAdminProductVariant = async (
     compareAtPrice: number | null;
     stock: number;
     active: boolean;
+    isDefault: boolean;
     imageOverride: string | null;
     sortOrder: number;
   }>,
@@ -276,7 +292,21 @@ export const updateAdminProductVariant = async (
     return { ok: false, message: 'DATABASE_URL not configured.' };
   }
 
-  const updated = await prisma!.productVariant.update({ where: { id }, data: patch });
+  const updated = await prisma!.$transaction(async (tx) => {
+    const existing = await tx.productVariant.findUnique({ where: { id }, select: { productId: true } });
+    if (!existing) {
+      throw new Error('Variant not found.');
+    }
+
+    if (patch.isDefault === true) {
+      await tx.productVariant.updateMany({
+        where: { productId: existing.productId },
+        data: { isDefault: false },
+      });
+    }
+
+    return tx.productVariant.update({ where: { id }, data: patch });
+  });
   return { ok: true, data: toVariant(updated) };
 };
 

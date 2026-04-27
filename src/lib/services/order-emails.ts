@@ -9,7 +9,7 @@ const fromAddress = process.env.EMAIL_FROM ?? siteConfig.supportEmail;
 
 const getOrderEmailBlock = (order: StoredOrderRequest) => {
   const items = order.items.map((item) => ({
-    name: item.productName,
+    name: item.variantName ? `${item.productName} (${item.variantName})` : item.productName,
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     lineTotal: item.unitPrice * item.quantity,

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import type { CartItem, Product, ResolvedCartItem } from '@/lib/types';
+import { getDefaultActiveVariant, getInitialVariantSelection, resolveVariantForProduct } from '@/lib/utils/variants';
 
 type CartContextShape = {
   items: CartItem[];
@@ -73,21 +74,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       .map((item) => {
         const product = catalog.find((entry) => entry.id === item.productId);
         if (!product) return null;
-        const activeVariants = (product.variants ?? []).filter((variant) => variant.active);
-        const fallbackVariant =
-          activeVariants[0] ?? {
-            id: `${product.id}-default`,
-            productId: product.id,
-            name: product.name,
-            sku: product.sku,
-            price: product.price,
-            compareAtPrice: product.compareAtPrice,
-            stock: product.stockQuantity,
-            active: true,
-          };
-        const variant =
-          activeVariants.find((entry) => entry.id === item.variantId) ??
-          (item.variantId ? null : fallbackVariant);
+        const variantFromSelection = item.variantId ? resolveVariantForProduct(product, item.variantId) : null;
+        const defaultVariant = getDefaultActiveVariant(product);
+        const initialVariantId = getInitialVariantSelection(product);
+        const variant = variantFromSelection ?? (defaultVariant ? resolveVariantForProduct(product, defaultVariant.id) : resolveVariantForProduct(product, initialVariantId));
         if (!variant) return null;
         return { product, variant, quantity: item.quantity };
       })

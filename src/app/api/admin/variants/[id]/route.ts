@@ -11,6 +11,7 @@ const schema = z.object({
   compareAtPrice: z.coerce.number().positive().optional().nullable(),
   stock: z.coerce.number().int().nonnegative().optional(),
   active: z.coerce.boolean().optional(),
+  isDefault: z.coerce.boolean().optional(),
   imageOverride: z.string().optional().nullable(),
   sortOrder: z.coerce.number().int().optional(),
 });

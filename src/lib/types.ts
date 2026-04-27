@@ -47,6 +47,7 @@ export type ProductVariant = {
   compareAtPrice?: number;
   stock: number;
   active: boolean;
+  isDefault?: boolean;
   imageOverride?: string;
   sortOrder?: number;
 };

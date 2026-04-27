@@ -84,7 +84,7 @@ export default async function AdminOrderDetailPage({
             <tbody>
               {order.items.map((item) => (
                 <tr key={`${item.productName}-${item.sku ?? 'item'}`} className="border-t border-[var(--color-border)]">
-                  <td className="py-2 pr-3">{item.productName}</td>
+                  <td className="py-2 pr-3">{item.variantName ? `${item.productName} (${item.variantName})` : item.productName}</td>
                   <td className="py-2 pr-3">{item.quantity}</td>
                   <td className="py-2 pr-3">{currency(item.unitPrice)}</td>
                   <td className="py-2 pr-3">{currency(item.unitPrice * item.quantity)}</td>

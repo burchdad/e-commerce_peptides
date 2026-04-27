@@ -7,14 +7,26 @@ import { PremiumBottleMockup } from '@/components/commerce/premium-bottle-mockup
 import { useCart } from '@/context/cart-context';
 import type { Product } from '@/lib/types';
 import { currency } from '@/lib/utils/format';
+import {
+  getActiveVariants,
+  getInitialVariantSelection,
+  requiresVariantSelection,
+  resolveVariantForProduct,
+} from '@/lib/utils/variants';
 
 export const ProductCard = ({ product }: { product: Product }) => {
   const { addItem } = useCart();
   const [ack, setAck] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState(() => getInitialVariantSelection(product));
   const secondaryImage = product.images.hover ?? product.images.gallery?.[0];
-  const defaultVariant = (product.variants ?? []).find((variant) => variant.active) ?? {
-    id: `${product.id}-default`,
-  };
+  const variants = getActiveVariants(product);
+  const mustChooseVariant = requiresVariantSelection(product);
+  const selectedVariant = resolveVariantForProduct(product, selectedVariantId);
+  const variantSelectValue = selectedVariantId || selectedVariant.id;
+  const canAddToCart =
+    ack &&
+    (!mustChooseVariant || Boolean(selectedVariantId)) &&
+    selectedVariant.stock > 0;
 
   return (
     <article className="group premium-surface rounded-[1.35rem] p-4 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.34)]">
@@ -36,16 +48,36 @@ export const ProductCard = ({ product }: { product: Product }) => {
 
       <p className="mt-4 text-sm text-[var(--color-muted)]">{product.shortDescription}</p>
       <div className="mt-4 flex items-end justify-between">
-        <p className="font-serif text-2xl text-[var(--color-text)]">{currency(product.price)}</p>
-        {product.compareAtPrice ? (
-          <p className="text-sm text-[var(--color-muted)] line-through">{currency(product.compareAtPrice)}</p>
+        <p className="font-serif text-2xl text-[var(--color-text)]">{currency(selectedVariant.price)}</p>
+        {selectedVariant.compareAtPrice ? (
+          <p className="text-sm text-[var(--color-muted)] line-through">{currency(selectedVariant.compareAtPrice)}</p>
         ) : null}
       </div>
+
+      {variants.length > 1 ? (
+        <div className="mt-4">
+          <label className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-muted)]">
+            Select Strength
+          </label>
+          <select
+            className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-depth)_74%,var(--color-brand-red)_26%)] p-3 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]"
+            value={variantSelectValue}
+            onChange={(event) => setSelectedVariantId(event.target.value)}
+          >
+            <option value="">Select Strength</option>
+            {variants.map((variant) => (
+              <option key={variant.id} value={variant.id}>
+                {variant.name} — {currency(variant.price)}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(212,175,55,0.4)] bg-[rgba(212,175,55,0.1)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-gold)]">
           <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-gold)]" />
-          Only 8 left in stock
+          Stock {selectedVariant.stock}
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(248,245,240,0.2)] bg-[rgba(248,245,240,0.06)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ivory)]">
           <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-ivory)]" />
@@ -63,12 +95,14 @@ export const ProductCard = ({ product }: { product: Product }) => {
         I confirm I meet all required conditions and accept the terms of purchase.
       </label>
       {!ack ? <p className="mt-2 text-xs text-[var(--color-muted)]">Accept the required terms to enable add to cart.</p> : null}
+      {mustChooseVariant && !selectedVariantId ? <p className="mt-2 text-xs text-[var(--color-muted)]">Choose a strength before adding to cart.</p> : null}
+      {selectedVariant.stock <= 0 ? <p className="mt-2 text-xs text-red-300">Selected strength is out of stock.</p> : null}
 
       <div className="mt-4 flex gap-3">
         <button
           className="flex-1 rounded-xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-depth)_75%,var(--color-brand-red)_25%)] px-4 py-3 text-sm uppercase tracking-[0.14em] text-[var(--color-text)] transition hover:border-[var(--color-gold)] disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!ack}
-          onClick={() => addItem(product.id, defaultVariant.id, 1)}
+          disabled={!canAddToCart}
+          onClick={() => addItem(product.id, selectedVariant.id, 1)}
         >
           Add to Cart
         </button>

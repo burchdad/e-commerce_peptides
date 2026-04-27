@@ -8,7 +8,7 @@ type DashboardProps = {
   dbEnabled: boolean;
   isClientMode: boolean;
   categories: Array<{ slug: string; name: string }>;
-  products: Array<{ id: string; name: string; slug: string; category: string; price: number; stockQuantity: number; isActive: boolean; variants?: Array<{ id: string; name: string; sku: string; price: number; stock: number; active: boolean }> }>;
+  products: Array<{ id: string; name: string; slug: string; category: string; price: number; stockQuantity: number; isActive: boolean; variants?: Array<{ id: string; name: string; sku: string; price: number; stock: number; active: boolean; isDefault?: boolean; sortOrder?: number }> }>;
   faqs: Array<{ id: string; question: string; answer: string }>;
   legalPages: Array<{ id: string; slug: string; title: string; intro: string }>;
   orders: Array<{ id: string; orderReference: string; email: string; status: string; createdAt: string }>;
@@ -61,7 +61,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
   const [registrantSearch, setRegistrantSearch] = useState('');
 
   const [variantProductId, setVariantProductId] = useState(products[0]?.id ?? '');
-  const [variantForm, setVariantForm] = useState({ name: '', sku: '', price: '0', stock: '0' });
+  const [variantForm, setVariantForm] = useState({ name: '', sku: '', price: '0', stock: '0', sortOrder: '0', isDefault: false });
 
   const [discountForm, setDiscountForm] = useState({
     name: '',
@@ -125,9 +125,19 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
       sku: variantForm.sku,
       price: Number(variantForm.price),
       stock: Number(variantForm.stock),
+      sortOrder: Number(variantForm.sortOrder),
+      isDefault: variantForm.isDefault,
       active: true,
     });
     setStatusMessage('Variant created. Refresh to load latest records.');
+  };
+
+  const onUpdateVariant = async (
+    variantId: string,
+    patch: { sortOrder?: number; isDefault?: boolean; active?: boolean },
+  ) => {
+    await submitJson(`/api/admin/variants/${variantId}`, 'PATCH', patch);
+    setStatusMessage('Variant updated. Refresh to load latest records.');
   };
 
   const onCreateDiscount = async () => {
@@ -283,13 +293,40 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
               <input className="input" placeholder="SKU" value={variantForm.sku} onChange={(event) => setVariantForm((prev) => ({ ...prev, sku: event.target.value }))} />
               <input className="input" placeholder="Price" type="number" value={variantForm.price} onChange={(event) => setVariantForm((prev) => ({ ...prev, price: event.target.value }))} />
               <input className="input" placeholder="Stock" type="number" value={variantForm.stock} onChange={(event) => setVariantForm((prev) => ({ ...prev, stock: event.target.value }))} />
+              <input className="input" placeholder="Sort Order" type="number" value={variantForm.sortOrder} onChange={(event) => setVariantForm((prev) => ({ ...prev, sortOrder: event.target.value }))} />
+              <label className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-sand)]">
+                <input type="checkbox" checked={variantForm.isDefault} onChange={(event) => setVariantForm((prev) => ({ ...prev, isDefault: event.target.checked }))} />
+                Set as default
+              </label>
             </div>
             <button className="btn-primary" onClick={onCreateVariant}>Add Variant</button>
             <div className="rounded-xl border border-[var(--color-border)] p-3 text-sm text-[var(--color-sand)]">
               {(activeProduct?.variants ?? []).length === 0
                 ? 'No variants found on selected product.'
                 : (activeProduct?.variants ?? []).map((variant) => (
-                    <p key={variant.id}>{variant.name} | {variant.sku} | ${variant.price.toFixed(2)} | stock {variant.stock}</p>
+                    <div key={variant.id} className="mb-2 rounded-lg border border-[var(--color-border)] p-3 last:mb-0">
+                      <p>{variant.name} | {variant.sku} | ${variant.price.toFixed(2)} | stock {variant.stock}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <label className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--color-sand)]">
+                          Sort
+                          <input
+                            className="input h-9 w-24"
+                            type="number"
+                            defaultValue={variant.sortOrder ?? 0}
+                            onBlur={(event) => {
+                              const sortOrder = Number(event.currentTarget.value);
+                              void onUpdateVariant(variant.id, { sortOrder });
+                            }}
+                          />
+                        </label>
+                        <button className="btn-secondary" onClick={() => void onUpdateVariant(variant.id, { isDefault: true })}>
+                          {variant.isDefault ? 'Default Variant' : 'Set Default'}
+                        </button>
+                        <button className="btn-secondary" onClick={() => void onUpdateVariant(variant.id, { active: !variant.active })}>
+                          {variant.active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    </div>
                   ))}
             </div>
           </section>

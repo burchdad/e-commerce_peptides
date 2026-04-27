@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { ProductGallery } from '@/components/commerce/product-gallery';
-import { ProductPurchasePanel } from '@/components/commerce/product-purchase-panel';
+import { ProductDetailClient } from '@/components/commerce/product-detail-client';
 import { DisclaimerNotice } from '@/components/ui/disclaimer-notice';
 import { siteConfig } from '@/lib/config/site-config';
 import { getPublicCoadocuments } from '@/lib/services/admin-data';
@@ -25,10 +24,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-10">
-      <section className="grid gap-8 lg:grid-cols-[1.1fr_1fr]">
-        <ProductGallery productName={product.name} images={product.images} />
-        <ProductPurchasePanel product={product} />
-      </section>
+      <ProductDetailClient product={product} />
 
       <section className="grid gap-6 md:grid-cols-2">
         <article className="premium-surface rounded-2xl p-6">

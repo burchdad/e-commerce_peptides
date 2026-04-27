@@ -6,34 +6,48 @@ import { useState } from 'react';
 import { useCart } from '@/context/cart-context';
 import type { Product } from '@/lib/types';
 import { currency } from '@/lib/utils/format';
+import {
+  getActiveVariants,
+  getInitialVariantSelection,
+  requiresVariantSelection,
+  resolveVariantForProduct,
+} from '@/lib/utils/variants';
 
-export const ProductPurchasePanel = ({ product }: { product: Product }) => {
+type ProductPurchasePanelProps = {
+  product: Product;
+  selectedVariantId?: string;
+  onSelectedVariantIdChange?: (variantId: string) => void;
+};
+
+export const ProductPurchasePanel = ({ product, selectedVariantId, onSelectedVariantIdChange }: ProductPurchasePanelProps) => {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [accepted, setAccepted] = useState(false);
   const [added, setAdded] = useState(false);
-  const availableVariants = (product.variants ?? []).filter((variant) => variant.active);
-  const [selectedVariantId, setSelectedVariantId] = useState(availableVariants[0]?.id ?? `${product.id}-default`);
+  const availableVariants = getActiveVariants(product);
+  const [internalSelectedVariantId, setInternalSelectedVariantId] = useState(() =>
+    selectedVariantId ?? getInitialVariantSelection(product),
+  );
+  const effectiveSelectedVariantId = selectedVariantId ?? internalSelectedVariantId;
+  const selectedVariant = resolveVariantForProduct(product, effectiveSelectedVariantId);
+  const mustChooseVariant = requiresVariantSelection(product);
+  const hasSelectedVariant = !mustChooseVariant || Boolean(effectiveSelectedVariantId);
+  const variantSelectValue = effectiveSelectedVariantId || selectedVariant.id;
 
-  const selectedVariant =
-    availableVariants.find((variant) => variant.id === selectedVariantId) ??
-    {
-      id: `${product.id}-default`,
-      productId: product.id,
-      name: product.name,
-      sku: product.sku,
-      price: product.price,
-      compareAtPrice: product.compareAtPrice,
-      stock: product.stockQuantity,
-      active: true,
-    };
+  const setVariantId = (variantId: string) => {
+    if (onSelectedVariantIdChange) {
+      onSelectedVariantIdChange(variantId);
+      return;
+    }
+    setInternalSelectedVariantId(variantId);
+  };
 
   const updateQuantity = (nextQuantity: number) => {
     setQuantity(Math.max(1, nextQuantity));
   };
 
   const onAddToCart = () => {
-    if (!accepted) return;
+    if (!accepted || !hasSelectedVariant || selectedVariant.stock <= 0) return;
 
     addItem(product.id, selectedVariant.id, quantity);
     setAdded(true);
@@ -52,19 +66,23 @@ export const ProductPurchasePanel = ({ product }: { product: Product }) => {
       </div>
 
       <div className="mt-6">
-        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Variant</label>
+        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Select Strength</label>
         <select
           className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-depth)_74%,var(--color-brand-red)_26%)] p-3 text-sm text-[var(--color-text)]"
-          value={selectedVariantId}
-          onChange={(event) => setSelectedVariantId(event.target.value)}
+          value={variantSelectValue}
+          onChange={(event) => setVariantId(event.target.value)}
         >
+          {mustChooseVariant ? <option value="">Select Strength</option> : null}
           {(availableVariants.length > 0 ? availableVariants : [selectedVariant]).map((variant) => (
             <option key={variant.id} value={variant.id}>
-              {variant.name} - {currency(variant.price)}
+              {variant.name} — {currency(variant.price)}
             </option>
           ))}
         </select>
         <p className="mt-2 text-xs text-[var(--color-muted)]">Stock: {selectedVariant.stock}</p>
+        <p className="mt-1 text-xs text-[var(--color-muted)]">SKU: {selectedVariant.sku}</p>
+        {mustChooseVariant && !effectiveSelectedVariantId ? <p className="mt-2 text-xs text-[var(--color-muted)]">Please choose a strength before adding to cart.</p> : null}
+        {selectedVariant.stock <= 0 ? <p className="mt-2 text-xs text-red-300">Selected strength is out of stock.</p> : null}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -120,7 +138,7 @@ export const ProductPurchasePanel = ({ product }: { product: Product }) => {
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <button className="btn-primary flex-1" type="button" disabled={!accepted} onClick={onAddToCart}>
+        <button className="btn-primary flex-1" type="button" disabled={!accepted || !hasSelectedVariant || selectedVariant.stock <= 0} onClick={onAddToCart}>
           {added ? 'Added to Cart' : 'Add to Cart'}
         </button>
         <Link className="btn-secondary flex-1 text-center" href="/cart">

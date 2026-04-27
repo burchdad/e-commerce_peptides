@@ -51,6 +51,7 @@ model ProductVariant {
   compareAtPrice Decimal?    @db.Decimal(10, 2)
   stock          Int         @default(0)
   active         Boolean     @default(true)
+  isDefault      Boolean     @default(false)
   imageOverride  String?
   sortOrder      Int         @default(0)
   createdAt      DateTime    @default(now())
