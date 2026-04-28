@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const STORAGE_KEY = 'pv-age-gate-v2';
 const EXPIRY_DAYS = 30;
@@ -10,11 +10,10 @@ const COOKIE_KEY = 'pv_age_gate_expires';
 
 const readCookieExpiry = (): number | null => {
   if (typeof document === 'undefined') return null;
-  const match = document.cookie
-    .split('; ')
-    .find((part) => part.startsWith(`${COOKIE_KEY}=`));
+  const escapedKey = COOKIE_KEY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${escapedKey}=([^;]+)`));
   if (!match) return null;
-  const value = Number(match.split('=')[1]);
+  const value = Number(decodeURIComponent(match[1]));
   return Number.isFinite(value) ? value : null;
 };
 
@@ -34,7 +33,11 @@ const writeCookieExpiry = (expires: number) => {
   if (typeof document === 'undefined') return;
   const maxAge = EXPIRY_DAYS * 24 * 60 * 60;
   const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${COOKIE_KEY}=${expires}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secureAttr}`;
+  try {
+    document.cookie = `${COOKIE_KEY}=${encodeURIComponent(String(expires))}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secureAttr}`;
+  } catch {
+    // Cookie writes can be blocked in strict browser/privacy modes.
+  }
 };
 
 const isVerified = (): boolean => {
@@ -124,51 +127,6 @@ export const AgeGateModal = () => {
   const [confirmed21Plus, setConfirmed21Plus] = useState(false);
   const [error, setError] = useState('');
 
-  // Recovery: if the form was submitted as a native GET before React hydrated,
-  // the values land in the URL query string. Read them, verify, store, and clean URL.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const firstNameParam = (params.get('firstName') ?? '').trim();
-    const emailParam = (params.get('email') ?? '').trim();
-    const dobParam = (params.get('dob') ?? '').trim();
-    const confirmedParam = params.get('confirmed21Plus') === 'on';
-
-    if (!firstNameParam || !emailParam || !dobParam || !confirmedParam) return;
-
-    const emailValid = emailParam.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailParam);
-    const parsedDob = parseDob(dobParam);
-    if (!emailValid || !parsedDob || calculateAge(parsedDob) < MIN_AGE) return;
-
-    // Valid pre-hydration submission — verify immediately and clean URL
-    storeVerification();
-    setOpen(false);
-
-    const cleanedParams = new URLSearchParams(params);
-    cleanedParams.delete('firstName');
-    cleanedParams.delete('email');
-    cleanedParams.delete('dob');
-    cleanedParams.delete('confirmed21Plus');
-    const qs = cleanedParams.toString();
-    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
-
-    const body = JSON.stringify({
-      firstName: firstNameParam,
-      email: emailParam,
-      dob: dobParam,
-      verifiedAt: new Date().toISOString(),
-    });
-    void fetch('/api/age-gate/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      keepalive: true,
-    }).catch(() =>
-      typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function'
-        ? navigator.sendBeacon('/api/age-gate/register', new Blob([body], { type: 'application/json' }))
-        : undefined,
-    );
-  }, []);
-
   const persistRegistrant = async (payload: {
     firstName: string;
     email: string;
@@ -210,7 +168,7 @@ export const AgeGateModal = () => {
     const firstNameValue = String(formData.get('firstName') ?? '').trim();
     const emailValue = String(formData.get('email') ?? '').trim();
     const dobValue = String(formData.get('dob') ?? '').trim();
-    const confirmedValue = formData.get('confirmed21Plus') === 'on';
+    const confirmedValue = formData.has('confirmed21Plus');
 
     if (!firstNameValue) {
       setError('Please enter your first name.');
@@ -249,8 +207,8 @@ export const AgeGateModal = () => {
     }
 
     // Let verified users proceed instantly; persistence runs in the background.
-    storeVerification();
     setOpen(false);
+    storeVerification();
 
     void persistRegistrant({
         firstName: firstNameValue,
@@ -273,8 +231,6 @@ export const AgeGateModal = () => {
         aria-modal="true"
         aria-labelledby="age-gate-title"
         onSubmit={handleContinue}
-        method="post"
-        action="/api/age-gate/submit"
         className="w-full max-w-md rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-8 shadow-2xl"
       >
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)]">Age Verification Required</p>
@@ -326,14 +282,16 @@ export const AgeGateModal = () => {
           </label>
           <input
             id="dob"
-            type="date"
+            type="text"
             name="dob"
             value={dob}
             onChange={(e) => {
               setDob(e.target.value);
               setError('');
             }}
-            max={new Date().toISOString().split('T')[0]}
+            placeholder="YYYY-MM-DD or MM/DD/YYYY"
+            inputMode="numeric"
+            autoComplete="bday"
             className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-4 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)] [color-scheme:dark]"
           />
         </div>

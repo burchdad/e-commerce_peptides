@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const firstName = (body.get('firstName') ?? '').trim();
   const email = (body.get('email') ?? '').trim();
   const dob = (body.get('dob') ?? '').trim();
-  const confirmed = body.get('confirmed21Plus') === 'on';
+  const confirmed = body.has('confirmed21Plus');
 
   const referer = request.headers.get('referer') ?? '/';
   const origin = new URL(request.url).origin;
