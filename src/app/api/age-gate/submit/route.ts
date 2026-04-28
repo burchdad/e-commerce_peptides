@@ -36,19 +36,38 @@ export async function POST(request: Request) {
   }
 
   // Validate date of birth and minimum age (21).
-  const parts = dob.split('-').map(Number);
+  const normalizedDob = dob.trim();
+  const isoLikeMatch = normalizedDob.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  const usLikeMatch = normalizedDob.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+
+  let year = 0;
+  let month = 0;
+  let day = 0;
+  if (isoLikeMatch) {
+    year = Number(isoLikeMatch[1]);
+    month = Number(isoLikeMatch[2]);
+    day = Number(isoLikeMatch[3]);
+  } else if (usLikeMatch) {
+    month = Number(usLikeMatch[1]);
+    day = Number(usLikeMatch[2]);
+    year = Number(usLikeMatch[3]);
+  }
+
   let ageOk = false;
-  if (parts.length === 3 && parts.every((p) => Number.isFinite(p))) {
-    const [year, month, day] = parts;
-    if (year && month && day) {
-      const birth = new Date(year, month - 1, day, 12, 0, 0, 0);
-      if (!isNaN(birth.getTime())) {
-        const today = new Date();
-        let age = today.getFullYear() - birth.getFullYear();
-        const md = today.getMonth() - birth.getMonth();
-        if (md < 0 || (md === 0 && today.getDate() < birth.getDate())) age--;
-        ageOk = age >= 21;
-      }
+  if (year >= 1900 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+    const birth = new Date(year, month - 1, day, 12, 0, 0, 0);
+    const dateIsValid =
+      !isNaN(birth.getTime()) &&
+      birth.getFullYear() === year &&
+      birth.getMonth() === month - 1 &&
+      birth.getDate() === day;
+
+    if (dateIsValid) {
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const md = today.getMonth() - birth.getMonth();
+      if (md < 0 || (md === 0 && today.getDate() < birth.getDate())) age--;
+      ageOk = age >= 21;
     }
   }
 

@@ -79,13 +79,32 @@ const storeVerification = () => {
 };
 
 const parseDob = (dob: string): Date | null => {
+  const normalized = dob.trim();
+  const isoLikeMatch = normalized.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  const usLikeMatch = normalized.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+
+  let year: number;
+  let month: number;
+  let day: number;
+
+  if (isoLikeMatch) {
+    year = Number(isoLikeMatch[1]);
+    month = Number(isoLikeMatch[2]);
+    day = Number(isoLikeMatch[3]);
+  } else if (usLikeMatch) {
+    month = Number(usLikeMatch[1]);
+    day = Number(usLikeMatch[2]);
+    year = Number(usLikeMatch[3]);
+  } else {
+    return null;
+  }
+
+  if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900) return null;
+
   // Use a fixed local-midday timestamp to avoid timezone edge cases.
-  const parts = dob.split('-').map(Number);
-  if (parts.length !== 3 || parts.some((value) => !Number.isFinite(value))) return null;
-  const [year, month, day] = parts;
-  if (!year || !month || !day) return null;
   const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
   if (Number.isNaN(parsed.getTime())) return null;
+  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) return null;
   return parsed;
 };
 
