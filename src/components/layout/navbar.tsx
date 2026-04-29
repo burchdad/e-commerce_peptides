@@ -91,7 +91,7 @@ export const Navbar = () => {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/register" className="btn-secondary hidden sm:inline-flex">
+            <Link href="/register" className="btn-secondary hidden lg:inline-flex">
               New Customer
             </Link>
             <Link href="/cart" className="btn-primary inline-flex">
@@ -148,12 +148,9 @@ export const Navbar = () => {
               </Link>
             ))}
 
-            <div className="mt-3 grid grid-cols-1 gap-2 border-t border-[var(--color-border)] pt-3 sm:grid-cols-2">
+            <div className="mt-3 border-t border-[var(--color-border)] pt-3">
               <Link href="/register" className="btn-secondary w-full justify-center" onClick={() => setMobileOpen(false)}>
                 New Customer
-              </Link>
-              <Link href="/cart" className="btn-primary w-full justify-center" onClick={() => setMobileOpen(false)}>
-                Cart ({cartCount})
               </Link>
             </div>
           </nav>
