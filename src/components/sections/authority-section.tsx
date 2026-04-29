@@ -15,7 +15,7 @@ const pillars = [
       </svg>
     ),
     label: 'High-Purity Formulations',
-    body: '≥98% purity standards across our full peptide catalog. Pharmaceutical-grade synthesis from documented domestic partners.',
+    body: 'Greater than 99% purity verified across our full peptide catalog. Pharmaceutical-grade synthesis from documented domestic partners.',
   },
   {
     icon: (

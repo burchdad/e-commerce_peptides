@@ -32,7 +32,7 @@ const badges = [
         <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18" />
       </svg>
     ),
-    label: '≥98% Purity Standard',
+    label: '>99% Purity Verified',
   },
   {
     icon: (
@@ -80,7 +80,7 @@ const guarantees = [
   },
   {
     heading: 'Purity Assurance',
-    body: 'Every lot is independently tested to ≥98% purity before fulfillment. CoA available on request.',
+    body: 'Every lot is independently tested to greater than 99% purity before fulfillment. Certificates of Analysis available in our COA portal for current tested batches.',
   },
   {
     heading: 'Discreet Packaging Promise',
