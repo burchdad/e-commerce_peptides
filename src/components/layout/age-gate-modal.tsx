@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'pv-age-gate-v2';
 const EXPIRY_DAYS = 30;
@@ -127,6 +127,68 @@ export const AgeGateModal = () => {
   const [confirmed21Plus, setConfirmed21Plus] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ageGateError = params.get('age_gate_error');
+    if (!ageGateError) return;
+
+    if (ageGateError === 'underage') {
+      setError(`You must be at least ${MIN_AGE} years old to access this site.`);
+    } else {
+      setError('Please complete all required fields to continue.');
+    }
+
+    const cleanedParams = new URLSearchParams(params);
+    cleanedParams.delete('age_gate_error');
+    const qs = cleanedParams.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+  }, []);
+
+  // Recovery path for old pre-hydration GET submissions still present in user history/cache.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const firstNameParam = (params.get('firstName') ?? '').trim();
+    const emailParam = (params.get('email') ?? '').trim();
+    const dobParam = (params.get('dob') ?? '').trim();
+    const confirmedParam = params.has('confirmed21Plus');
+
+    if (!firstNameParam || !emailParam || !dobParam || !confirmedParam) return;
+
+    const emailValid = emailParam.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailParam);
+    const parsedDob = parseDob(dobParam);
+    if (!emailValid || !parsedDob || calculateAge(parsedDob) < MIN_AGE) return;
+
+    storeVerification();
+    setOpen(false);
+
+    const cleanedParams = new URLSearchParams(params);
+    cleanedParams.delete('firstName');
+    cleanedParams.delete('email');
+    cleanedParams.delete('dob');
+    cleanedParams.delete('confirmed21Plus');
+    const qs = cleanedParams.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+
+    const body = JSON.stringify({
+      firstName: firstNameParam,
+      email: emailParam,
+      dob: dobParam,
+      verifiedAt: new Date().toISOString(),
+    });
+
+    void fetch('/api/age-gate/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true,
+      cache: 'no-store',
+    }).catch(() =>
+      typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function'
+        ? navigator.sendBeacon('/api/age-gate/register', new Blob([body], { type: 'application/json' }))
+        : undefined,
+    );
+  }, []);
+
   const persistRegistrant = async (payload: {
     firstName: string;
     email: string;
@@ -231,6 +293,8 @@ export const AgeGateModal = () => {
         aria-modal="true"
         aria-labelledby="age-gate-title"
         onSubmit={handleContinue}
+        method="post"
+        action="/api/age-gate/submit"
         className="w-full max-w-md rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-8 shadow-2xl"
       >
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)]">Age Verification Required</p>
