@@ -120,12 +120,19 @@ const calculateAge = (birth: Date): number => {
 };
 
 export const AgeGateModal = () => {
-  const [open, setOpen] = useState(() => !isVerified());
+  const [open, setOpen] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [dob, setDob] = useState('');
   const [confirmed21Plus, setConfirmed21Plus] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const verified = isVerified();
+    console.info('[age-gate] verification check on mount', { verified });
+    setOpen(!verified);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -210,21 +217,27 @@ export const AgeGateModal = () => {
         throw new Error('Age gate registration request failed.');
       }
 
-      const data = (await response.json().catch(() => null)) as { persisted?: boolean } | null;
+      const data = (await response.json().catch(() => null)) as { persisted?: boolean; expiresAt?: number } | null;
       if (data?.persisted === false) {
         console.warn('Age gate verification completed, but registration was not persisted.');
       }
-      return;
+      if (typeof data?.expiresAt === 'number' && Number.isFinite(data.expiresAt) && data.expiresAt > Date.now()) {
+        return data.expiresAt;
+      }
+
+      return Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000;
     } catch {
       if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
         const blob = new Blob([body], { type: 'application/json' });
         navigator.sendBeacon('/api/age-gate/register', blob);
       }
+      return null;
     }
   };
 
-  const handleContinue = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleContinue = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
 
     const formData = new FormData(event.currentTarget);
     const firstNameValue = String(formData.get('firstName') ?? '').trim();
@@ -268,16 +281,32 @@ export const AgeGateModal = () => {
       return;
     }
 
-    // Let verified users proceed instantly; persistence runs in the background.
-    setOpen(false);
-    storeVerification();
+    setIsSubmitting(true);
 
-    void persistRegistrant({
-        firstName: firstNameValue,
-        email: emailValue,
-        dob: dobValue,
-        verifiedAt: new Date().toISOString(),
-      });
+    const expiresAt = await persistRegistrant({
+      firstName: firstNameValue,
+      email: emailValue,
+      dob: dobValue,
+      verifiedAt: new Date().toISOString(),
+    });
+
+    if (!expiresAt) {
+      console.warn('[age-gate] submit failed, keeping modal open');
+      setError('Unable to verify your age right now. Please try again.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ verified: true, expires: expiresAt }));
+      console.info('[age-gate] localStorage verification written');
+    } catch {
+      // Some browsers/extensions block localStorage. Cookie fallback still allows entry.
+    }
+    writeCookieExpiry(expiresAt);
+    console.info('[age-gate] verification complete, closing modal', { expiresAt });
+    setOpen(false);
+    setIsSubmitting(false);
   };
 
   const exit = () => {
@@ -293,8 +322,6 @@ export const AgeGateModal = () => {
         aria-modal="true"
         aria-labelledby="age-gate-title"
         onSubmit={handleContinue}
-        method="post"
-        action="/api/age-gate/submit"
         className="w-full max-w-md rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-8 shadow-2xl"
       >
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)]">Age Verification Required</p>
@@ -377,9 +404,10 @@ export const AgeGateModal = () => {
         <div className="mt-6 flex gap-3">
           <button
             type="submit"
+            disabled={isSubmitting}
             className="flex-1 rounded-full bg-[var(--color-gold)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-ink)] transition hover:brightness-110"
           >
-            Continue
+            {isSubmitting ? 'Verifying...' : 'Continue'}
           </button>
           <button
             type="button"
