@@ -135,6 +135,15 @@ export const AgeGateModal = () => {
   }, []);
 
   useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ageGateError = params.get('age_gate_error');
     if (!ageGateError) return;
@@ -316,13 +325,13 @@ export const AgeGateModal = () => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/85 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/92 px-4 py-5 backdrop-blur-md sm:px-6 sm:py-8">
       <form
         role="dialog"
         aria-modal="true"
         aria-labelledby="age-gate-title"
         onSubmit={handleContinue}
-        className="w-full max-w-md rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-8 shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-6 shadow-2xl sm:p-8"
       >
         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-gold)]">Age Verification Required</p>
         <h2 id="age-gate-title" className="mt-3 font-serif text-3xl text-[var(--color-ivory)]">
@@ -337,7 +346,7 @@ export const AgeGateModal = () => {
           </p>
         ) : null}
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-6 space-y-5">
           <label className="block text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
             First Name
             <input
@@ -364,10 +373,13 @@ export const AgeGateModal = () => {
               }}
               className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-4 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)]"
             />
+            <span className="mt-2 block text-[11px] normal-case tracking-normal text-[var(--color-muted)]">
+              We do not share your information. Used only for account and compliance records.
+            </span>
           </label>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-7">
           <label htmlFor="dob" className="block text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
             Date of Birth
           </label>
@@ -387,7 +399,7 @@ export const AgeGateModal = () => {
           />
         </div>
 
-        <label className="mt-4 flex items-start gap-2 text-xs text-[var(--color-sand)]">
+        <label className="mt-5 flex items-start gap-2 text-xs text-[var(--color-sand)]">
           <input
             type="checkbox"
             name="confirmed21Plus"
@@ -398,21 +410,21 @@ export const AgeGateModal = () => {
             }}
             className="mt-0.5 h-4 w-4 accent-[var(--color-gold)]"
           />
-          <span>I affirm that I am 21 years old or older.</span>
+          <span>I affirm that I am at least 21 years of age.</span>
         </label>
 
-        <div className="mt-6 flex gap-3">
+        <div className="mt-8 flex flex-col gap-3 min-[380px]:mt-7 min-[380px]:flex-row">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 rounded-full bg-[var(--color-gold)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-ink)] transition hover:brightness-110"
+            className="w-full rounded-full bg-[var(--color-gold)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-ink)] transition hover:brightness-110 min-[380px]:flex-1"
           >
             {isSubmitting ? 'Verifying...' : 'Continue'}
           </button>
           <button
             type="button"
             onClick={exit}
-            className="flex-1 rounded-full border border-[var(--color-border)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-muted)] transition hover:border-[var(--color-gold)] hover:text-[var(--color-gold)]"
+            className="w-full rounded-full border border-[var(--color-border)] px-5 py-3 text-xs uppercase tracking-[0.15em] text-[var(--color-muted)] transition hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] min-[380px]:flex-1"
           >
             Exit Site
           </button>
