@@ -12,10 +12,11 @@ export const CalculatorForm = () => {
 
   const result = calculateReconstitution({ peptideStrengthMg, reconstitutionMl, desiredDoseMg, syringeUnits });
 
-  const quickStrengths = [2, 5, 10, 15, 20];
-  const quickSolutions = [1, 2, 3, 5];
+  const quickStrengths = [2, 5, 10, 20, 50, 100];
+  const quickSolutions = [1, 2, 3, 5, 10];
   const quickDoses = [0.1, 0.25, 0.5, 1];
-  const syringeFill = Math.max(0, Math.min(100, result.unitsForDose));
+  const quickSyringes = [30, 50, 100, 150];
+  const syringeFillPct = syringeUnits > 0 ? Math.max(0, Math.min(100, (result.unitsForDose / syringeUnits) * 100)) : 0;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
@@ -53,10 +54,15 @@ export const CalculatorForm = () => {
           <input className="mt-3 w-full rounded-md border border-[var(--color-gold-soft)] bg-[var(--color-ink)] p-2" min={0.01} step={0.01} type="number" value={desiredDoseMg} onChange={(e) => setDesiredDoseMg(Number(e.target.value))} />
         </div>
 
-        <label className="block text-sm text-[var(--color-sand)]">
-          Syringe Units
-          <input className="mt-1 w-full rounded-md border border-[var(--color-gold-soft)] bg-[var(--color-ink)] p-2" min={1} step={1} type="number" value={syringeUnits} onChange={(e) => setSyringeUnits(Number(e.target.value))} />
-        </label>
+        <div>
+          <p className="text-xs uppercase tracking-[0.15em] text-[var(--color-muted)]">Needle / Syringe Size (units)</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {quickSyringes.map((value) => (
+              <button key={value} type="button" onClick={() => setSyringeUnits(value)} className={`rounded-full px-3 py-1.5 text-xs ${syringeUnits === value ? 'bg-[var(--color-gold)] text-[var(--color-ink)]' : 'border border-[var(--color-border)] text-[var(--color-sand)]'}`}>{value}u</button>
+            ))}
+          </div>
+          <input className="mt-3 w-full rounded-md border border-[var(--color-gold-soft)] bg-[var(--color-ink)] p-2" min={1} step={1} type="number" value={syringeUnits} onChange={(e) => setSyringeUnits(Number(e.target.value))} />
+        </div>
       </form>
 
       <aside className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-6">
@@ -81,11 +87,11 @@ export const CalculatorForm = () => {
         </ul>
 
         <div className="mt-6 rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs uppercase tracking-[0.15em] text-[var(--color-muted)]">Syringe Visualization</p>
+          <p className="text-xs uppercase tracking-[0.15em] text-[var(--color-muted)]">Syringe Visualization ({syringeUnits}u syringe)</p>
           <div className="mt-3 h-6 overflow-hidden rounded-full border border-[var(--color-border)] bg-black/25">
-            <div className="h-full bg-[linear-gradient(90deg,var(--color-gold),#f2ce6d)]" style={{ width: `${syringeFill}%` }} />
+            <div className="h-full bg-[linear-gradient(90deg,var(--color-gold),#f2ce6d)]" style={{ width: `${syringeFillPct}%` }} />
           </div>
-          <p className="mt-2 text-xs text-[var(--color-sand)]">Approximate fill: {syringeFill.toFixed(1)} / 100 units</p>
+          <p className="mt-2 text-xs text-[var(--color-sand)]">Approximate fill: {result.unitsForDose.toFixed(2)} / {syringeUnits} units ({syringeFillPct.toFixed(1)}%)</p>
         </div>
       </aside>
     </div>

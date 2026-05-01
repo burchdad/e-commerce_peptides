@@ -17,6 +17,10 @@ const schema = z.object({
   paymentMethodId: z.string().min(2),
   shippingMethodId: z.string().optional(),
   shippingMethodLabel: z.string().optional(),
+  discountCode: z.string().optional(),
+  discountAmount: z.coerce.number().min(0).optional(),
+  shippingAmount: z.coerce.number().min(0).optional(),
+  taxAmount: z.coerce.number().min(0).optional(),
   acknowledgements: z.object({
     informationAccurate: z.literal(true),
     termsAccepted: z.literal(true),

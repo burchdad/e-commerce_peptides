@@ -39,10 +39,14 @@ export const CheckoutForm = ({
   catalog,
   discountRules,
   shippingMethods,
+  taxEnabled = false,
+  taxRate = 0,
 }: {
   catalog: Product[];
   discountRules: DiscountRule[];
   shippingMethods: ShippingMethod[];
+  taxEnabled?: boolean;
+  taxRate?: number;
 }) => {
   const router = useRouter();
   const { resolveItems, clearCart } = useCart();
@@ -60,7 +64,22 @@ export const CheckoutForm = ({
   const [acknowledgements, setAcknowledgements] = useState(defaultAcknowledgements);
 
   const resolved = useMemo(() => resolveItems(catalog), [resolveItems, catalog]);
-  const pricing = useMemo(() => computeDiscount({ items: resolved, rules: discountRules, code: discountCode }), [resolved, discountRules, discountCode]);
+  const discountPricing = useMemo(() => computeDiscount({ items: resolved, rules: discountRules, code: discountCode }), [resolved, discountRules, discountCode]);
+  const pricing = useMemo(() => {
+    const shippingMethod = shippingMethods.find((m) => m.id === selectedShipping);
+    const shippingAmount = shippingMethod ? shippingMethod.price : 0;
+    const taxableAmount = discountPricing.subtotal - discountPricing.discountAmount;
+    const taxAmount = taxEnabled && taxRate > 0 ? taxableAmount * (taxRate / 100) : 0;
+    const total = taxableAmount + shippingAmount + taxAmount;
+    return {
+      subtotal: discountPricing.subtotal,
+      discountAmount: discountPricing.discountAmount,
+      shippingAmount,
+      taxAmount,
+      total,
+      appliedRule: discountPricing.appliedRule,
+    };
+  }, [discountPricing, shippingMethods, selectedShipping, taxEnabled, taxRate]);
 
   const updateField = (field: keyof typeof defaultFormState, value: string) => {
     setFormState((current) => ({ ...current, [field]: value }));
@@ -136,6 +155,10 @@ export const CheckoutForm = ({
         shippingMethodId: selectedShippingMethod?.id,
         shippingMethodLabel: selectedShippingMethod ? `${selectedShippingMethod.name} (${selectedShippingMethod.carrier})` : undefined,
         acknowledgements,
+        discountCode: discountCode || undefined,
+        discountAmount: pricing.discountAmount,
+        shippingAmount: pricing.shippingAmount,
+        taxAmount: pricing.taxAmount,
         items: resolved.map((item) => ({
           productId: item.product.id,
           productVariantId: item.variant.id,

@@ -313,7 +313,14 @@ const toStoredOrderFromDb = (row: {
 }): StoredOrderRequest => {
   const createdAt = row.createdAt.toISOString();
   const workflow = extractWorkflow(row.acknowledgements, createdAt);
-  const rowExtended = row as typeof row & { shippingMethodId?: string | null; shippingMethodLabel?: string | null };
+  const rowExtended = row as typeof row & {
+    shippingMethodId?: string | null;
+    shippingMethodLabel?: string | null;
+    discountCode?: string | null;
+    discountAmount?: { toString(): string } | number | null;
+    shippingAmount?: { toString(): string } | number | null;
+    taxAmount?: { toString(): string } | number | null;
+  };
 
   const stored = buildStoredOrder({
     id: row.id,
@@ -334,6 +341,10 @@ const toStoredOrderFromDb = (row: {
       paymentMethodId: row.paymentMethodId,
       shippingMethodId: rowExtended.shippingMethodId ?? undefined,
       shippingMethodLabel: rowExtended.shippingMethodLabel ?? undefined,
+      discountCode: rowExtended.discountCode ?? undefined,
+      discountAmount: rowExtended.discountAmount != null ? Number(rowExtended.discountAmount) : undefined,
+      shippingAmount: rowExtended.shippingAmount != null ? Number(rowExtended.shippingAmount) : undefined,
+      taxAmount: rowExtended.taxAmount != null ? Number(rowExtended.taxAmount) : undefined,
       notes: row.notes ?? undefined,
       acknowledgements: extractAcknowledgements(row.acknowledgements),
       items: row.items.map((item) => ({
@@ -375,6 +386,10 @@ export const createOrderRequestRecord = async (order: OrderRequest) => {
           paymentMethodLabel: getPaymentLabel(order.paymentMethodId),
           shippingMethodId: order.shippingMethodId,
           shippingMethodLabel: order.shippingMethodLabel,
+          discountCode: order.discountCode,
+          discountAmount: order.discountAmount,
+          shippingAmount: order.shippingAmount,
+          taxAmount: order.taxAmount,
           acknowledgements: composeAcknowledgements(order.acknowledgements, workflow),
           ...mapWorkflowToDb('pending'),
           items: {

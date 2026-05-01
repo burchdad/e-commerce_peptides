@@ -178,6 +178,10 @@ model OrderRequest {
   acknowledgements    Json
   status              OrderStatus   @default(PENDING)
   paymentStatus       PaymentStatus @default(UNPAID)
+  discountCode        String?
+  discountAmount      Decimal?      @db.Decimal(10, 2)
+  shippingAmount      Decimal?      @db.Decimal(10, 2)
+  taxAmount           Decimal?      @db.Decimal(10, 2)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   reviewedAt          DateTime?

@@ -61,7 +61,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
   const [statusMessage, setStatusMessage] = useState('');
   const [registrantSearch, setRegistrantSearch] = useState('');
   const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
-  const [settingsSection, setSettingsSection] = useState<'contact' | 'payment' | 'legal' | 'branding' | 'store'>('contact');
+  const [settingsSection, setSettingsSection] = useState<'contact' | 'payment' | 'legal' | 'branding' | 'store' | 'checkout'>('contact');
   const [savingSettings, setSavingSettings] = useState(false);
 
   const [variantProductId, setVariantProductId] = useState(products[0]?.id ?? '');
@@ -486,13 +486,13 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
             <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Settings</h2>
             {/* Sub-section navigation */}
             <div className="flex flex-wrap gap-2 border-b border-[var(--color-gold-soft)] pb-3">
-              {(['contact', 'payment', 'legal', 'branding', 'store'] as const).map((sec) => (
+              {(['contact', 'payment', 'legal', 'branding', 'store', 'checkout'] as const).map((sec) => (
                 <button
                   key={sec}
                   onClick={() => setSettingsSection(sec)}
                   className={`rounded-full px-4 py-1.5 text-xs uppercase tracking-[0.14em] transition ${settingsSection === sec ? 'bg-[var(--color-gold)] text-[var(--color-ink)]' : 'border border-[var(--color-gold-soft)] text-[var(--color-sand)] hover:bg-white/5'}`}
                 >
-                  {sec === 'contact' ? 'Contact Info' : sec === 'payment' ? 'Payment Methods' : sec === 'legal' ? 'Legal Content' : sec === 'branding' ? 'Branding' : 'Store Operations'}
+                  {sec === 'contact' ? 'Contact Info' : sec === 'payment' ? 'Payment Methods' : sec === 'legal' ? 'Legal Content' : sec === 'branding' ? 'Branding' : sec === 'store' ? 'Store Operations' : 'Checkout / Tax'}
                 </button>
               ))}
             </div>
@@ -627,6 +627,43 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
                 </div>
                 <button className="btn-primary" disabled={savingSettings} onClick={() => onSaveSettings({ 'store.fulfillmentHours': settings['store.fulfillmentHours'] ?? '', 'store.kitThreshold': settings['store.kitThreshold'] ?? '', 'store.freeShippingThreshold': settings['store.freeShippingThreshold'] ?? '' })}>
                   {savingSettings ? 'Saving…' : 'Save Store Settings'}
+                </button>
+              </div>
+            ) : null}
+
+            {/* 6. Checkout / Tax */}
+            {settingsSection === 'checkout' ? (
+              <div className="space-y-3">
+                <p className="text-xs text-[var(--color-sand)]">Configure sales tax applied at checkout. Tax is calculated on (subtotal − discount) before shipping.</p>
+                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3">
+                  <span className="font-medium text-[var(--color-ivory)]">Enable Sales Tax</span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-[var(--color-gold)]"
+                    checked={settings['checkout.taxEnabled'] === 'true'}
+                    onChange={(e) => setSetting('checkout.taxEnabled', e.target.checked ? 'true' : 'false')}
+                  />
+                </label>
+                <div>
+                  <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Tax Rate (%)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="e.g. 8.25"
+                    value={settings['checkout.taxRate'] ?? '0'}
+                    onChange={(e) => setSetting('checkout.taxRate', e.target.value)}
+                  />
+                  <p className="mt-1 text-xs text-[var(--color-muted)]">Enter as a percentage (e.g. 8.25 for 8.25%). Only applied when sales tax is enabled.</p>
+                </div>
+                <button
+                  className="btn-primary"
+                  disabled={savingSettings}
+                  onClick={() => onSaveSettings({ 'checkout.taxEnabled': settings['checkout.taxEnabled'] ?? 'false', 'checkout.taxRate': settings['checkout.taxRate'] ?? '0' })}
+                >
+                  {savingSettings ? 'Saving…' : 'Save Tax Settings'}
                 </button>
               </div>
             ) : null}

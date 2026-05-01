@@ -170,6 +170,10 @@ export type OrderRequest = {
   shippingMethodLabel?: string;
   notes?: string;
   acknowledgements: OrderAcknowledgements;
+  discountCode?: string;
+  discountAmount?: number;
+  shippingAmount?: number;
+  taxAmount?: number;
   items: Array<{
     productId?: string;
     productVariantId?: string;
@@ -187,6 +191,10 @@ export type StoredOrderRequest = OrderRequest & {
   paymentMethodLabel: string;
   shippingMethodId?: string;
   shippingMethodLabel?: string;
+  discountCode?: string;
+  discountAmount?: number;
+  shippingAmount?: number;
+  taxAmount?: number;
   status: OrderWorkflowStatus;
   conversionStatus: ConversionStatus;
   paymentInstructions?: string;
