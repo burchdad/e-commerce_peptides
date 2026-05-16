@@ -1,6 +1,8 @@
 import { ProductGrid } from '@/components/commerce/product-grid';
 import { getProductsByCategory } from '@/lib/utils/catalog';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AccessoriesPage() {
   const products = await getProductsByCategory('accessories');
 

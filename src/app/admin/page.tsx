@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation';
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { isAdminAuthenticated } from '@/lib/auth/admin';
 import { businessConfig } from '@/lib/config/business-config';
-import { categories } from '@/lib/data/site';
 import { hasDatabaseUrl } from '@/lib/db';
 import {
   getAdminAgeGateRegistrants,
@@ -50,7 +49,6 @@ export default async function AdminPage() {
         <Link href="/admin/orders" className="btn-secondary">Open Orders Workspace</Link>
       </div>
       <AdminDashboard
-        categories={categories.map((category) => ({ slug: category.slug, name: category.name }))}
         ageGateRegistrants={ageGateRegistrants}
         discountRules={discountRules}
         coaDocuments={coaDocuments}

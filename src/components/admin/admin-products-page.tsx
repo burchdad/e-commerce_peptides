@@ -597,7 +597,7 @@ const ProductModal = ({
               </div>
               <div>
                 <label className="label">Compare-at Price</label>
-                <input className="input" type="number" step="0.01" min="0" value={form.compareAtPrice} onChange={field('compareAtPrice')} placeholder="199.00" />
+                <input className="input" type="number" step="0.01" min="0" value={form.compareAtPrice} onChange={field('compareAtPrice')} placeholder="0" />
               </div>
               <div>
                 <label className="label">Stock Quantity</label>
@@ -664,8 +664,11 @@ const ProductModal = ({
                 disabled={bottleMockupUnavailable}
                 onChange={(e) => setWrapProductUploads(e.target.checked)}
               />
-              Auto-generate bottle mockup on upload (products only)
+              Generate bottle mockup on upload
             </label>
+            {!bottleMockupUnavailable && !wrapProductUploads ? (
+              <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup generation is currently disabled for this upload.</p>
+            ) : null}
             {bottleMockupUnavailable ? (
               <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup disabled for accessories or kit-style product images.</p>
             ) : null}

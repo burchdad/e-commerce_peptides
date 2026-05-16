@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { paymentMethods } from '@/lib/data/site';
+import { getAdminDiscountRules, getAdminShippingMethods } from '@/lib/services/admin-data';
 import { sendAdminNotification, sendOrderReceivedEmail } from '@/lib/services/order-emails';
 import { createOrderRequestRecord } from '@/lib/services/order-requests';
+import { getAllSettings } from '@/lib/services/settings';
+import type { OrderRequest, ResolvedCartItem } from '@/lib/types';
+import { computeDiscount } from '@/lib/utils/discounts';
+import { fetchAllProducts } from '@/lib/utils/catalog';
+import { getActiveVariants } from '@/lib/utils/variants';
 
 const schema = z.object({
   customerName: z.string().min(2),
@@ -43,6 +50,99 @@ const schema = z.object({
     .min(1),
 });
 
+const money = (value: number) => Math.round(value * 100) / 100;
+
+const buildServerOrder = async (data: z.infer<typeof schema>): Promise<OrderRequest> => {
+  const [catalog, discountRules, shippingMethods, settings] = await Promise.all([
+    fetchAllProducts(),
+    getAdminDiscountRules(),
+    getAdminShippingMethods(),
+    getAllSettings(),
+  ]);
+
+  const paymentMethod = paymentMethods.find((method) => method.id === data.paymentMethodId && method.enabled);
+  if (!paymentMethod) {
+    throw new Error('Please select a valid payment method.');
+  }
+
+  const resolvedItems: ResolvedCartItem[] = data.items.map((item) => {
+    const product = item.productId ? catalog.find((entry) => entry.id === item.productId && entry.isActive) : undefined;
+    if (!product) {
+      throw new Error('One or more products are unavailable.');
+    }
+
+    const activeVariants = getActiveVariants(product);
+    const variant =
+      (item.productVariantId
+        ? activeVariants.find((entry) => entry.id === item.productVariantId)
+        : activeVariants.find((entry) => entry.isDefault) ?? activeVariants[0]) ?? null;
+
+    if (!variant) {
+      throw new Error(`No active variant is available for ${product.name}.`);
+    }
+
+    if (variant.stock < item.quantity) {
+      throw new Error(`${product.name} (${variant.name}) has only ${variant.stock} available.`);
+    }
+
+    return {
+      product,
+      variant,
+      quantity: item.quantity,
+    };
+  });
+
+  const selectedShippingMethod = data.shippingMethodId
+    ? shippingMethods.find((method) => method.id === data.shippingMethodId && method.active)
+    : undefined;
+
+  if (data.shippingMethodId && !selectedShippingMethod) {
+    throw new Error('Please select a valid shipping method.');
+  }
+
+  const discountPricing = computeDiscount({
+    items: resolvedItems,
+    rules: discountRules,
+    code: data.discountCode,
+  });
+  const shippingAmount = selectedShippingMethod ? selectedShippingMethod.price : 0;
+  const taxEnabled = settings['checkout.taxEnabled'] === 'true';
+  const taxRate = Number(settings['checkout.taxRate'] ?? '0') || 0;
+  const taxableAmount = Math.max(0, discountPricing.subtotal - discountPricing.discountAmount);
+  const taxAmount = taxEnabled && taxRate > 0 ? taxableAmount * (taxRate / 100) : 0;
+
+  return {
+    customerName: data.customerName,
+    email: data.email,
+    phone: data.phone,
+    shippingAddress: data.shippingAddress,
+    city: data.city,
+    state: data.state,
+    postalCode: data.postalCode,
+    country: data.country,
+    notes: data.notes,
+    paymentMethodId: data.paymentMethodId,
+    shippingMethodId: selectedShippingMethod?.id,
+    shippingMethodLabel: selectedShippingMethod
+      ? `${selectedShippingMethod.name} (${selectedShippingMethod.carrier})`
+      : undefined,
+    discountCode: data.discountCode || undefined,
+    discountAmount: money(discountPricing.discountAmount),
+    shippingAmount: money(shippingAmount),
+    taxAmount: money(taxAmount),
+    acknowledgements: data.acknowledgements,
+    items: resolvedItems.map((item) => ({
+      productId: item.product.id,
+      productVariantId: item.variant.id,
+      productName: item.product.name,
+      variantName: item.variant.name,
+      sku: item.variant.sku,
+      quantity: item.quantity,
+      unitPrice: money(item.variant.price),
+    })),
+  };
+};
+
 export async function POST(request: Request) {
   const body = await request.json();
 
@@ -51,10 +151,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
-
   try {
-    const order = await createOrderRequestRecord(data);
+    const serverOrder = await buildServerOrder(parsed.data);
+    const order = await createOrderRequestRecord(serverOrder);
     await Promise.all([sendOrderReceivedEmail(order), sendAdminNotification(order, 'order-received')]);
 
     return NextResponse.json(
@@ -64,7 +163,10 @@ export async function POST(request: Request) {
       },
       { status: 200 },
     );
-  } catch {
-    return NextResponse.json({ error: 'Unable to create order request.' }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unable to create order request.' },
+      { status: 400 },
+    );
   }
 }

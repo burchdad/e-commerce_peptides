@@ -11,6 +11,8 @@ import { categories, faqs, legal, products } from '@/lib/data/site';
 import { hasDatabaseUrl, prisma } from '@/lib/db';
 import type { ProductImageMap } from '@/lib/types';
 
+const requiresDatabaseCatalog = process.env.NODE_ENV === 'production';
+
 const toProductImages = (value: unknown): ProductImageMap => {
   if (value && typeof value === 'object' && 'primary' in (value as Record<string, unknown>)) {
     return value as ProductImageMap;
@@ -83,7 +85,12 @@ const toVariant = (variant: PrismaProductVariant) => ({
 });
 
 export const getAdminProducts = async () => {
-  if (!hasDatabaseUrl) return products;
+  if (!hasDatabaseUrl) {
+    if (requiresDatabaseCatalog) {
+      throw new Error('DATABASE_URL is required for the production catalog.');
+    }
+    return products;
+  }
   try {
     const rows = await prisma!.product.findMany({
       include: { category: true, variants: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
@@ -96,7 +103,10 @@ export const getAdminProducts = async () => {
         variants: row.variants.map(toVariant),
       };
     });
-  } catch {
+  } catch (error) {
+    if (requiresDatabaseCatalog) {
+      throw error;
+    }
     return products;
   }
 };

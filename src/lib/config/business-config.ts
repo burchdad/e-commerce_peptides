@@ -11,4 +11,5 @@ export const businessConfig = {
   enableManualPayments: parseBool(process.env.NEXT_PUBLIC_ENABLE_MANUAL_PAYMENTS, true),
   enableFollowUps: parseBool(process.env.NEXT_PUBLIC_ENABLE_FOLLOWUPS, true),
   isClientMode: parseBool(process.env.NEXT_PUBLIC_CLIENT_MODE, false),
+  disableCategories: parseBool(process.env.NEXT_PUBLIC_DISABLE_CATEGORIES, false),
 } as const;

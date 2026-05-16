@@ -35,6 +35,7 @@ type WorkflowMetadata = {
 const WORKFLOW_KEY = '__workflow';
 const FOLLOW_UP_HOURS_RAW = Number(process.env.ORDER_FOLLOWUP_HOURS ?? '24');
 const FOLLOW_UP_HOURS = Number.isFinite(FOLLOW_UP_HOURS_RAW) && FOLLOW_UP_HOURS_RAW > 0 ? FOLLOW_UP_HOURS_RAW : 24;
+const requiresPersistentOrders = process.env.NODE_ENV === 'production';
 
 const buildOrderReference = () => {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -368,6 +369,10 @@ export const createOrderRequestRecord = async (order: OrderRequest) => {
   const now = new Date().toISOString();
   const workflow = getDefaultWorkflow(now);
 
+  if (requiresPersistentOrders && !hasDatabaseUrl) {
+    throw new Error('Order persistence is not configured.');
+  }
+
   if (hasDatabaseUrl) {
     try {
       const created = await prisma!.orderRequest.create({
@@ -409,6 +414,9 @@ export const createOrderRequestRecord = async (order: OrderRequest) => {
 
       return cacheOrder(toStoredOrderFromDb(created));
     } catch (error) {
+      if (requiresPersistentOrders) {
+        throw error;
+      }
       console.warn('[order-request] database persistence failed, using in-memory fallback', error);
     }
   }

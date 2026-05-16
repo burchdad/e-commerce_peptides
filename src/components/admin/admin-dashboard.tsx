@@ -7,7 +7,6 @@ import type { AgeGateRegistrant, COADocument, DiscountRule, ShippingMethod } fro
 type DashboardProps = {
   dbEnabled: boolean;
   isClientMode: boolean;
-  categories: Array<{ slug: string; name: string }>;
   products: Array<{ id: string; name: string; slug: string; category: string; price: number; stockQuantity: number; isActive: boolean; variants?: Array<{ id: string; name: string; sku: string; price: number; stock: number; active: boolean; isDefault?: boolean; sortOrder?: number }> }>;
   faqs: Array<{ id: string; question: string; answer: string }>;
   legalPages: Array<{ id: string; slug: string; title: string; intro: string }>;
@@ -56,7 +55,7 @@ const downloadCsv = (filename: string, lines: string[]) => {
   URL.revokeObjectURL(url);
 };
 
-export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, legalPages, orders, ageGateRegistrants, discountRules, coaDocuments, shippingMethods, initialSettings }: DashboardProps) => {
+export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, orders, ageGateRegistrants, discountRules, coaDocuments, shippingMethods, initialSettings }: DashboardProps) => {
   const [active, setActive] = useState<AdminSection>('Dashboard');
   const [statusMessage, setStatusMessage] = useState('');
   const [registrantSearch, setRegistrantSearch] = useState('');

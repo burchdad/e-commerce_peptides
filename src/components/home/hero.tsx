@@ -39,7 +39,7 @@ export const Hero = () => {
           Refined Peptide Collection standards, transparent policies, and a complimentary research kit with qualifying peptide orders.
         </p>
         <div className="mt-7 flex flex-col gap-3 min-[480px]:mt-8 min-[480px]:flex-row min-[480px]:gap-4">
-          <Link className="btn-primary w-full justify-center min-[480px]:w-auto" href="/shop/glp-products">
+          <Link className="btn-primary w-full justify-center min-[480px]:w-auto" href="/shop">
             Shop Peptides
           </Link>
           <Link className="btn-secondary w-full justify-center border-[var(--color-gold)] bg-[rgba(0,0,0,0.2)] text-white hover:bg-[rgba(0,0,0,0.35)] min-[480px]:w-auto" href="/complimentary-kit">

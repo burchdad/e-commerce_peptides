@@ -6,6 +6,8 @@ import { CategoryBanner } from '@/components/ui/category-banner';
 import { siteConfig } from '@/lib/config/site-config';
 import { getCategoryBySlug, getProductsByCategory } from '@/lib/utils/catalog';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
   const { category: categorySlug } = await params;
   const category = getCategoryBySlug(categorySlug);

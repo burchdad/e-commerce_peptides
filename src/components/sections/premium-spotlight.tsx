@@ -20,7 +20,7 @@ export const PremiumSpotlight = ({ products }: { products: Product[] }) => {
         <p className="text-xs uppercase tracking-[0.28em] text-[var(--color-gold)]">Premium Product Spotlight</p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <h2 className="section-title max-w-2xl">Branded bottle presentation for a stronger premium feel.</h2>
-          <Link href="/shop/glp-products" className="btn-primary">
+          <Link href="/shop" className="btn-primary">
             Explore Full Collection
           </Link>
         </div>

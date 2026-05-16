@@ -12,6 +12,8 @@ import { FaqAccordion } from '@/components/ui/faq-accordion';
 import { categories, faqs } from '@/lib/data/site';
 import { getFeaturedProducts } from '@/lib/utils/catalog';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const featuredProducts = await getFeaturedProducts();
   return (
@@ -30,7 +32,7 @@ export default async function Home() {
             <p className="text-xs uppercase tracking-[0.25em] text-[var(--color-gold)]">Featured Products</p>
             <h2 className="section-title mt-2">Launch Products</h2>
           </div>
-          <Link className="btn-secondary" href="/shop/glp-products">
+          <Link className="btn-secondary" href="/shop">
             View Collection
           </Link>
         </div>

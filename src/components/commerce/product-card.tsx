@@ -10,6 +10,7 @@ import { currency } from '@/lib/utils/format';
 import {
   getActiveVariants,
   getInitialVariantSelection,
+  getVariantDisplayImage,
   requiresVariantSelection,
   resolveVariantForProduct,
 } from '@/lib/utils/variants';
@@ -22,6 +23,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
   const variants = getActiveVariants(product);
   const mustChooseVariant = requiresVariantSelection(product);
   const selectedVariant = resolveVariantForProduct(product, selectedVariantId);
+  const primaryImage = getVariantDisplayImage(product, selectedVariant);
   const variantSelectValue = selectedVariantId || selectedVariant.id;
   const canAddToCart =
     ack &&
@@ -31,7 +33,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
   return (
     <article className="group premium-surface rounded-[1.35rem] p-4 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.34)]">
       <PremiumBottleMockup
-        imageSrc={product.images.primary}
+        imageSrc={primaryImage}
         secondaryImageSrc={secondaryImage}
         alt={product.name}
         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 45vw, 30vw"

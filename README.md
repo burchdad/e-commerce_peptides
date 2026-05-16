@@ -57,14 +57,26 @@ npm run build
 
 ## Database (Optional)
 
-If you want persistent storage, set `DATABASE_URL` and run:
+For local demos, the app can render with static seed data when `DATABASE_URL` is omitted. For production, set `DATABASE_URL`; order persistence and catalog reads are treated as required.
+
+If you want persistent storage locally, set `DATABASE_URL` and run:
 
 ```bash
 npm run prisma:generate
 npm run prisma:push
 ```
 
-Without `DATABASE_URL`, the app falls back to in-memory behavior for order records.
+Without `DATABASE_URL` in local development, the app falls back to in-memory behavior for order records. Do not use that mode for production orders.
+
+## Storefront Modes
+
+Set:
+
+```bash
+NEXT_PUBLIC_DISABLE_CATEGORIES="true"
+```
+
+When enabled, `/shop` displays all active products on one page instead of category navigation.
 
 ## Client Handoff Mode
 

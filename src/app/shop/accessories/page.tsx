@@ -3,6 +3,8 @@ import { SafeImage } from '@/components/ui/safe-image';
 import { categoryBannerImages } from '@/lib/config/images';
 import { getProductsByCategory } from '@/lib/utils/catalog';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ShopAccessoriesPage() {
   const products = await getProductsByCategory('accessories');
 

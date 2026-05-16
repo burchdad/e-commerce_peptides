@@ -7,6 +7,7 @@ import { SafeImage } from '@/components/ui/safe-image';
 import { useCart } from '@/context/cart-context';
 import type { Product } from '@/lib/types';
 import { currency } from '@/lib/utils/format';
+import { getVariantDisplayImage } from '@/lib/utils/variants';
 
 export const CartPageClient = ({ catalog }: { catalog: Product[] }) => {
   const { resolveItems, updateQuantity, removeItem } = useCart();
@@ -30,7 +31,7 @@ export const CartPageClient = ({ catalog }: { catalog: Product[] }) => {
                   <div className="flex items-start gap-4">
                     <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
                       <SafeImage
-                        src={item.product.images.primary}
+                        src={getVariantDisplayImage(item.product, item.variant)}
                         alt={item.product.name}
                         sizes="96px"
                         className="object-cover"

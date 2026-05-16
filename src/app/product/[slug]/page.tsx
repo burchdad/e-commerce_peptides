@@ -7,6 +7,8 @@ import { siteConfig } from '@/lib/config/site-config';
 import { getPublicCoadocuments } from '@/lib/services/admin-data';
 import { getProductBySlug } from '@/lib/utils/catalog';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
