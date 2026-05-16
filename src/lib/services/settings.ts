@@ -13,6 +13,8 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   'store.fulfillmentHours': '24-48',
   'store.kitThreshold': '1',
   'store.freeShippingThreshold': '',
+  'store.disableCategories': 'false',
+  'products.bottleMockupsEnabled': 'false',
   'checkout.taxEnabled': 'false',
   'checkout.taxRate': '0',
   'branding.siteName': 'Peppers & Vibes',

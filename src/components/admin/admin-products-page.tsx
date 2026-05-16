@@ -71,9 +71,11 @@ const emptyForm = (defaultCategory: string): FormState => ({
 export const AdminProductsPage = ({
   initialProducts,
   categories,
+  bottleMockupsEnabled,
 }: {
   initialProducts: Product[];
   categories: CategoryOption[];
+  bottleMockupsEnabled: boolean;
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [search, setSearch] = useState('');
@@ -166,7 +168,10 @@ export const AdminProductsPage = ({
     setUploadingImage(true);
     try {
       const uploaded: string[] = [];
-      const shouldRenderBottle = wrapProductUploads && !shouldSkipBottleMockup(form.categorySlug, form.name);
+      const shouldRenderBottle =
+        bottleMockupsEnabled &&
+        wrapProductUploads &&
+        !shouldSkipBottleMockup(form.categorySlug, form.name);
       for (const file of Array.from(files)) {
         const fd = new FormData();
         fd.append('file', file);
@@ -362,6 +367,7 @@ export const AdminProductsPage = ({
           isSubmitting={isSubmitting}
           wrapProductUploads={wrapProductUploads}
           setWrapProductUploads={setWrapProductUploads}
+          bottleMockupsEnabled={bottleMockupsEnabled}
           onAddImageUrl={addImageUrl}
           onRemoveImage={removeImage}
           onFileUpload={handleFileUpload}
@@ -410,6 +416,10 @@ const ProductRow = ({
   onDelete: (p: Product) => void;
 }) => {
   const thumb = product.images.primary;
+  const storefrontVariant =
+    product.variants?.find((variant) => variant.active && variant.isDefault) ??
+    product.variants?.find((variant) => variant.active);
+  const storefrontPrice = storefrontVariant?.price ?? product.price;
 
   return (
     <tr className="border-b border-[var(--color-gold-soft)]/30 last:border-0 hover:bg-white/5 transition">
@@ -428,7 +438,14 @@ const ProductRow = ({
         <p className="text-xs text-[var(--color-sand)]">{product.category}</p>
       </td>
       <td className="py-3 px-3 hidden md:table-cell text-[var(--color-sand)]">{product.sku}</td>
-      <td className="py-3 px-3 text-[var(--color-ivory)]">{currency(product.price)}</td>
+      <td className="py-3 px-3 text-[var(--color-ivory)]">
+        {currency(storefrontPrice)}
+        {storefrontVariant ? (
+          <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-sand)]">
+            {storefrontVariant.name}
+          </p>
+        ) : null}
+      </td>
       <td className="py-3 px-3 hidden sm:table-cell text-[var(--color-sand)]">{product.stockQuantity}</td>
       <td className="py-3 px-3">
         <span
@@ -475,6 +492,7 @@ const ProductModal = ({
   isSubmitting,
   wrapProductUploads,
   setWrapProductUploads,
+  bottleMockupsEnabled,
   onAddImageUrl,
   onRemoveImage,
   onFileUpload,
@@ -492,6 +510,7 @@ const ProductModal = ({
   isSubmitting: boolean;
   wrapProductUploads: boolean;
   setWrapProductUploads: React.Dispatch<React.SetStateAction<boolean>>;
+  bottleMockupsEnabled: boolean;
   onAddImageUrl: () => void;
   onRemoveImage: (i: number) => void;
   onFileUpload: (files: FileList | null) => void;
@@ -517,7 +536,7 @@ const ProductModal = ({
   };
 
   const [dragOver, setDragOver] = useState(false);
-  const bottleMockupUnavailable = shouldSkipBottleMockup(form.categorySlug, form.name);
+  const bottleMockupUnavailable = !bottleMockupsEnabled || shouldSkipBottleMockup(form.categorySlug, form.name);
 
   return (
     <div
@@ -669,7 +688,10 @@ const ProductModal = ({
             {!bottleMockupUnavailable && !wrapProductUploads ? (
               <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup generation is currently disabled for this upload.</p>
             ) : null}
-            {bottleMockupUnavailable ? (
+            {!bottleMockupsEnabled ? (
+              <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup generation is disabled in Admin Settings.</p>
+            ) : null}
+            {bottleMockupsEnabled && bottleMockupUnavailable ? (
               <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup disabled for accessories or kit-style product images.</p>
             ) : null}
 

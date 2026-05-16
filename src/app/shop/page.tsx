@@ -3,12 +3,16 @@ import Link from 'next/link';
 import { ProductGrid } from '@/components/commerce/product-grid';
 import { businessConfig } from '@/lib/config/business-config';
 import { categories } from '@/lib/data/site';
+import { getAllSettings } from '@/lib/services/settings';
 import { fetchAllProducts } from '@/lib/utils/catalog';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ShopPage() {
-  if (businessConfig.disableCategories) {
+  const settings = await getAllSettings();
+  const disableCategories = businessConfig.disableCategories || settings['store.disableCategories'] === 'true';
+
+  if (disableCategories) {
     const products = (await fetchAllProducts()).filter((product) => product.isActive);
 
     return (

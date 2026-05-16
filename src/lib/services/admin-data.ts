@@ -183,11 +183,39 @@ export const updateAdminProduct = async (id: string, patch: Partial<ProductInput
     data.category = { connect: { id: category.id } };
   }
 
-  const updated = await prisma!.product.update({
-    where: { id },
-    data,
-    include: { category: true, variants: true },
+  const updated = await prisma!.$transaction(async (tx) => {
+    const product = await tx.product.update({
+      where: { id },
+      data,
+      include: { category: true, variants: true },
+    });
+
+    if (patch.price !== undefined || patch.compareAtPrice !== undefined) {
+      const defaultVariant = product.variants.find((variant) => variant.isDefault);
+      const singleVariant = product.variants.length === 1 ? product.variants[0] : null;
+      const variantToSync = defaultVariant ?? singleVariant;
+
+      if (variantToSync) {
+        await tx.productVariant.update({
+          where: { id: variantToSync.id },
+          data: {
+            ...(patch.price !== undefined ? { price: patch.price } : {}),
+            ...(patch.compareAtPrice !== undefined
+              ? { compareAtPrice: patch.compareAtPrice ?? null }
+              : {}),
+          },
+        });
+
+        return tx.product.findUniqueOrThrow({
+          where: { id },
+          include: { category: true, variants: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
+        });
+      }
+    }
+
+    return product;
   });
+
   return {
     ok: true,
     message: 'Product updated.',

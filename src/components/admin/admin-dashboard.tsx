@@ -624,7 +624,41 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
                     <input className="input" type="number" placeholder="0" value={settings['store.freeShippingThreshold'] ?? ''} onChange={(e) => setSetting('store.freeShippingThreshold', e.target.value)} />
                   </div>
                 </div>
-                <button className="btn-primary" disabled={savingSettings} onClick={() => onSaveSettings({ 'store.fulfillmentHours': settings['store.fulfillmentHours'] ?? '', 'store.kitThreshold': settings['store.kitThreshold'] ?? '', 'store.freeShippingThreshold': settings['store.freeShippingThreshold'] ?? '' })}>
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] px-4 py-3">
+                  <span>
+                    <span className="block font-medium text-[var(--color-ivory)]">Show all products on one Shop page</span>
+                    <span className="text-xs text-[var(--color-sand)]">Disables category tiles on /shop and displays all active products together.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 accent-[var(--color-gold)]"
+                    checked={settings['store.disableCategories'] === 'true'}
+                    onChange={(e) => setSetting('store.disableCategories', e.target.checked ? 'true' : 'false')}
+                  />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] px-4 py-3">
+                  <span>
+                    <span className="block font-medium text-[var(--color-ivory)]">Enable bottle mockup generation</span>
+                    <span className="text-xs text-[var(--color-sand)]">Controls the bottle mockup upload option in Manage Products.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 accent-[var(--color-gold)]"
+                    checked={settings['products.bottleMockupsEnabled'] === 'true'}
+                    onChange={(e) => setSetting('products.bottleMockupsEnabled', e.target.checked ? 'true' : 'false')}
+                  />
+                </label>
+                <button
+                  className="btn-primary"
+                  disabled={savingSettings}
+                  onClick={() => onSaveSettings({
+                    'store.fulfillmentHours': settings['store.fulfillmentHours'] ?? '',
+                    'store.kitThreshold': settings['store.kitThreshold'] ?? '',
+                    'store.freeShippingThreshold': settings['store.freeShippingThreshold'] ?? '',
+                    'store.disableCategories': settings['store.disableCategories'] ?? 'false',
+                    'products.bottleMockupsEnabled': settings['products.bottleMockupsEnabled'] ?? 'false',
+                  })}
+                >
                   {savingSettings ? 'Saving…' : 'Save Store Settings'}
                 </button>
               </div>
