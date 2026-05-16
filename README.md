@@ -68,6 +68,12 @@ npm run prisma:push
 
 Without `DATABASE_URL` in local development, the app falls back to in-memory behavior for order records. Do not use that mode for production orders.
 
+For production databases, apply committed migrations before or during deployment:
+
+```bash
+npm run prisma:deploy
+```
+
 ## Storefront Modes
 
 Set:

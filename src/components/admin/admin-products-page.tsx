@@ -44,6 +44,15 @@ const productImages = (product: Product): string[] => {
   return [...new Set(all)];
 };
 
+const getStorefrontVariant = (product: Product) =>
+  product.variants?.find((variant) => variant.active && variant.isDefault) ??
+  product.variants?.find((variant) => variant.active);
+
+const getStorefrontPrice = (product: Product) => getStorefrontVariant(product)?.price ?? product.price;
+
+const getStorefrontCompareAtPrice = (product: Product) =>
+  getStorefrontVariant(product)?.compareAtPrice ?? product.compareAtPrice;
+
 const shouldSkipBottleMockup = (categorySlug: string, name = '') => {
   const normalizedName = name.toLowerCase();
   return categorySlug === 'accessories' || normalizedName.includes('kit');
@@ -124,6 +133,9 @@ export const AdminProductsPage = ({
   };
 
   const openEdit = (product: Product) => {
+    const storefrontPrice = getStorefrontPrice(product);
+    const storefrontCompareAtPrice = getStorefrontCompareAtPrice(product);
+
     setForm({
       name: product.name,
       subtitle: product.subtitle,
@@ -131,8 +143,8 @@ export const AdminProductsPage = ({
       sku: product.sku,
       shortDescription: product.shortDescription,
       longDescription: product.longDescription,
-      price: String(product.price),
-      compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : '',
+      price: String(storefrontPrice),
+      compareAtPrice: storefrontCompareAtPrice ? String(storefrontCompareAtPrice) : '',
       stockQuantity: String(product.stockQuantity),
       categorySlug: product.category,
       badge: product.badge ?? '',
@@ -416,10 +428,8 @@ const ProductRow = ({
   onDelete: (p: Product) => void;
 }) => {
   const thumb = product.images.primary;
-  const storefrontVariant =
-    product.variants?.find((variant) => variant.active && variant.isDefault) ??
-    product.variants?.find((variant) => variant.active);
-  const storefrontPrice = storefrontVariant?.price ?? product.price;
+  const storefrontVariant = getStorefrontVariant(product);
+  const storefrontPrice = getStorefrontPrice(product);
 
   return (
     <tr className="border-b border-[var(--color-gold-soft)]/30 last:border-0 hover:bg-white/5 transition">
