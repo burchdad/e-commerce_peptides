@@ -550,19 +550,19 @@ const ProductModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center bg-black/70 p-4 pt-12 overflow-y-auto"
+      className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden bg-black/70 p-3 sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-2xl rounded-[1.6rem] border border-[var(--color-gold-soft)] bg-[var(--color-ink)] p-6 md:p-8 shadow-2xl">
+      <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[1.6rem] border border-[var(--color-gold-soft)] bg-[var(--color-ink)] shadow-2xl sm:max-h-[calc(100dvh-2rem)]">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-gold-soft)]/40 px-5 py-4 md:px-8">
           <h2 className="font-serif text-2xl text-[var(--color-ivory)]">
             {mode === 'create' ? 'New Product' : `Edit: ${form.name || '…'}`}
           </h2>
           <button onClick={onClose} className="text-[var(--color-sand)] hover:text-[var(--color-ivory)] text-xl leading-none">×</button>
         </div>
 
-        <div className="space-y-5">
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-8">
           {/* Basic info */}
           <fieldset className="space-y-3">
             <legend className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold)] mb-3">Basic Info</legend>
@@ -783,7 +783,7 @@ const ProductModal = ({
         </div>
 
         {/* Footer actions */}
-        <div className="mt-8 flex justify-end gap-3">
+        <div className="flex shrink-0 justify-end gap-3 border-t border-[var(--color-gold-soft)]/40 px-5 py-4 md:px-8">
           <button
             onClick={onClose}
             className="rounded-xl border border-[var(--color-gold-soft)] px-5 py-2.5 text-sm text-[var(--color-sand)] hover:text-[var(--color-ivory)] transition"
