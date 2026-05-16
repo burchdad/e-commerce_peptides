@@ -5,6 +5,7 @@ import { ProductDetailClient } from '@/components/commerce/product-detail-client
 import { DisclaimerNotice } from '@/components/ui/disclaimer-notice';
 import { siteConfig } from '@/lib/config/site-config';
 import { getPublicCoadocuments } from '@/lib/services/admin-data';
+import { getAllSettings } from '@/lib/services/settings';
 import { getProductBySlug } from '@/lib/utils/catalog';
 
 export const dynamic = 'force-dynamic';
@@ -22,11 +23,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
-  const coas = await getPublicCoadocuments(product.id);
+  const [coas, settings] = await Promise.all([getPublicCoadocuments(product.id), getAllSettings()]);
+  const bottleMockupsEnabled = settings['products.bottleMockupsEnabled'] === 'true';
 
   return (
     <div className="space-y-10">
-      <ProductDetailClient product={product} />
+      <ProductDetailClient product={product} bottleMockupsEnabled={bottleMockupsEnabled} />
 
       <section className="grid gap-6 md:grid-cols-2">
         <article className="premium-surface rounded-2xl p-6">

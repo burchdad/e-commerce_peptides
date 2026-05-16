@@ -60,7 +60,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
   const [statusMessage, setStatusMessage] = useState('');
   const [registrantSearch, setRegistrantSearch] = useState('');
   const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
-  const [settingsSection, setSettingsSection] = useState<'contact' | 'payment' | 'legal' | 'branding' | 'store' | 'checkout'>('contact');
+  const [settingsSection, setSettingsSection] = useState<'store' | 'contact' | 'payment' | 'legal' | 'branding' | 'checkout'>('store');
   const [savingSettings, setSavingSettings] = useState(false);
 
   const [variantProductId, setVariantProductId] = useState(products[0]?.id ?? '');
@@ -485,13 +485,13 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
             <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Settings</h2>
             {/* Sub-section navigation */}
             <div className="flex flex-wrap gap-2 border-b border-[var(--color-gold-soft)] pb-3">
-              {(['contact', 'payment', 'legal', 'branding', 'store', 'checkout'] as const).map((sec) => (
+              {(['store', 'contact', 'payment', 'legal', 'branding', 'checkout'] as const).map((sec) => (
                 <button
                   key={sec}
                   onClick={() => setSettingsSection(sec)}
                   className={`rounded-full px-4 py-1.5 text-xs uppercase tracking-[0.14em] transition ${settingsSection === sec ? 'bg-[var(--color-gold)] text-[var(--color-ink)]' : 'border border-[var(--color-gold-soft)] text-[var(--color-sand)] hover:bg-white/5'}`}
                 >
-                  {sec === 'contact' ? 'Contact Info' : sec === 'payment' ? 'Payment Methods' : sec === 'legal' ? 'Legal Content' : sec === 'branding' ? 'Branding' : sec === 'store' ? 'Store Operations' : 'Checkout / Tax'}
+                  {sec === 'store' ? 'Catalog Display' : sec === 'contact' ? 'Contact Info' : sec === 'payment' ? 'Payment Methods' : sec === 'legal' ? 'Legal Content' : sec === 'branding' ? 'Branding' : 'Checkout / Tax'}
                 </button>
               ))}
             </div>
@@ -609,7 +609,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
             {/* 5. Store Operations */}
             {settingsSection === 'store' ? (
               <div className="space-y-3">
-                <p className="text-xs text-[var(--color-sand)]">Operational configuration for fulfillment and order thresholds.</p>
+                <p className="text-xs text-[var(--color-sand)]">Control how the storefront catalog is displayed to customers.</p>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Fulfillment Timeframe (e.g. 24-48 hours)</label>
@@ -627,7 +627,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
                 <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] px-4 py-3">
                   <span>
                     <span className="block font-medium text-[var(--color-ivory)]">Show all products on one Shop page</span>
-                    <span className="text-xs text-[var(--color-sand)]">Disables category tiles on /shop and displays all active products together.</span>
+                    <span className="text-xs text-[var(--color-sand)]">When active, /shop shows every active product together. When off, /shop shows category tiles and category pages.</span>
                   </span>
                   <input
                     type="checkbox"
@@ -638,8 +638,8 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
                 </label>
                 <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] px-4 py-3">
                   <span>
-                    <span className="block font-medium text-[var(--color-ivory)]">Enable bottle mockup generation</span>
-                    <span className="text-xs text-[var(--color-sand)]">Controls the bottle mockup upload option in Manage Products.</span>
+                    <span className="block font-medium text-[var(--color-ivory)]">Enable bottle mockups on storefront</span>
+                    <span className="text-xs text-[var(--color-sand)]">When off, product cards and product pages show the uploaded product image without the bottle wrapper.</span>
                   </span>
                   <input
                     type="checkbox"
@@ -659,7 +659,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
                     'products.bottleMockupsEnabled': settings['products.bottleMockupsEnabled'] ?? 'false',
                   })}
                 >
-                  {savingSettings ? 'Saving…' : 'Save Store Settings'}
+                  {savingSettings ? 'Saving...' : 'Save Catalog Settings'}
                 </button>
               </div>
             ) : null}

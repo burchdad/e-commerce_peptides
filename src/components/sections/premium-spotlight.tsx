@@ -1,10 +1,17 @@
 import Link from 'next/link';
 
 import { PremiumBottleMockup } from '@/components/commerce/premium-bottle-mockup';
+import { SafeImage } from '@/components/ui/safe-image';
 import type { Product } from '@/lib/types';
 import { currency } from '@/lib/utils/format';
 
-export const PremiumSpotlight = ({ products }: { products: Product[] }) => {
+export const PremiumSpotlight = ({
+  products,
+  bottleMockupsEnabled,
+}: {
+  products: Product[];
+  bottleMockupsEnabled: boolean;
+}) => {
   const spotlight = products.slice(0, 2);
 
   if (spotlight.length === 0) {
@@ -28,14 +35,26 @@ export const PremiumSpotlight = ({ products }: { products: Product[] }) => {
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           {spotlight.map((product) => (
             <article key={product.id} className="group rounded-2xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.18)] p-5">
-              <PremiumBottleMockup
-                imageSrc={product.images.primary}
-                secondaryImageSrc={product.images.hover ?? product.images.gallery?.[0]}
-                alt={product.name}
-                sizes="(max-width: 768px) 100vw, 40vw"
-                className="aspect-[4/5]"
-                useGroupHover
-              />
+              {bottleMockupsEnabled ? (
+                <PremiumBottleMockup
+                  imageSrc={product.images.primary}
+                  secondaryImageSrc={product.images.hover ?? product.images.gallery?.[0]}
+                  alt={product.name}
+                  sizes="(max-width: 768px) 100vw, 40vw"
+                  className="aspect-[4/5]"
+                  useGroupHover
+                />
+              ) : (
+                <div className="relative aspect-[4/5] overflow-hidden rounded-[1.1rem] border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
+                  <SafeImage
+                    src={product.images.primary}
+                    alt={product.name}
+                    sizes="(max-width: 768px) 100vw, 40vw"
+                    className="object-cover transition duration-500 group-hover:scale-105"
+                    fallbackLabel="Product image"
+                  />
+                </div>
+              )}
               <p className="mt-4 text-[11px] uppercase tracking-[0.24em] text-[var(--color-gold)]">{product.category.replace('-', ' ')}</p>
               <h3 className="mt-2 font-serif text-3xl text-[var(--color-ivory)]">{product.name}</h3>
               <p className="mt-2 text-sm text-[var(--color-muted)]">{product.shortDescription}</p>

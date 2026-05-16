@@ -9,9 +9,10 @@ import type { ProductImageMap } from '@/lib/types';
 type ProductGalleryProps = {
   productName: string;
   images: ProductImageMap;
+  bottleMockupsEnabled: boolean;
 };
 
-export const ProductGallery = ({ productName, images }: ProductGalleryProps) => {
+export const ProductGallery = ({ productName, images, bottleMockupsEnabled }: ProductGalleryProps) => {
   const galleryImages = useMemo(() => {
     const all = [images.primary, ...(images.gallery ?? [])].filter(Boolean);
     return Array.from(new Set(all));
@@ -21,13 +22,26 @@ export const ProductGallery = ({ productName, images }: ProductGalleryProps) => 
 
   return (
     <div className="space-y-3">
-      <PremiumBottleMockup
-        imageSrc={activeImage}
-        alt={productName}
-        sizes="(max-width: 1024px) 100vw, 55vw"
-        priority
-        className="aspect-[4/5]"
-      />
+      {bottleMockupsEnabled ? (
+        <PremiumBottleMockup
+          imageSrc={activeImage}
+          alt={productName}
+          sizes="(max-width: 1024px) 100vw, 55vw"
+          priority
+          className="aspect-[4/5]"
+        />
+      ) : (
+        <div className="relative aspect-[4/5] overflow-hidden rounded-[1.7rem] border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
+          <SafeImage
+            src={activeImage}
+            alt={productName}
+            sizes="(max-width: 1024px) 100vw, 55vw"
+            className="object-cover"
+            priority
+            fallbackLabel="Product image"
+          />
+        </div>
+      )}
 
       {galleryImages.length > 1 ? (
         <div className="grid grid-cols-4 gap-2">

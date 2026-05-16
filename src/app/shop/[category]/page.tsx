@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ProductGrid } from '@/components/commerce/product-grid';
 import { CategoryBanner } from '@/components/ui/category-banner';
 import { siteConfig } from '@/lib/config/site-config';
+import { getAllSettings } from '@/lib/services/settings';
 import { getCategoryBySlug, getProductsByCategory } from '@/lib/utils/catalog';
 
 export const dynamic = 'force-dynamic';
@@ -21,12 +22,13 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const category = getCategoryBySlug(categorySlug);
   if (!category) notFound();
 
-  const categoryProducts = await getProductsByCategory(categorySlug);
+  const [categoryProducts, settings] = await Promise.all([getProductsByCategory(categorySlug), getAllSettings()]);
+  const bottleMockupsEnabled = settings['products.bottleMockupsEnabled'] === 'true';
 
   return (
     <div className="space-y-8">
       <CategoryBanner category={category} />
-      <ProductGrid products={categoryProducts} />
+      <ProductGrid products={categoryProducts} bottleMockupsEnabled={bottleMockupsEnabled} />
     </div>
   );
 }

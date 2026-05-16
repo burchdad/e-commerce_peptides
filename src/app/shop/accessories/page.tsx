@@ -1,12 +1,14 @@
 import { ProductGrid } from '@/components/commerce/product-grid';
 import { SafeImage } from '@/components/ui/safe-image';
 import { categoryBannerImages } from '@/lib/config/images';
+import { getAllSettings } from '@/lib/services/settings';
 import { getProductsByCategory } from '@/lib/utils/catalog';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ShopAccessoriesPage() {
-  const products = await getProductsByCategory('accessories');
+  const [products, settings] = await Promise.all([getProductsByCategory('accessories'), getAllSettings()]);
+  const bottleMockupsEnabled = settings['products.bottleMockupsEnabled'] === 'true';
 
   return (
     <div className="space-y-8">
@@ -29,7 +31,7 @@ export default async function ShopAccessoriesPage() {
         </div>
       </section>
 
-      <ProductGrid products={products} />
+      <ProductGrid products={products} bottleMockupsEnabled={bottleMockupsEnabled} />
     </div>
   );
 }

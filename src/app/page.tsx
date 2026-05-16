@@ -10,12 +10,15 @@ import { TrustSignals } from '@/components/sections/trust-signals';
 import { DisclaimerNotice } from '@/components/ui/disclaimer-notice';
 import { FaqAccordion } from '@/components/ui/faq-accordion';
 import { categories, faqs } from '@/lib/data/site';
+import { getAllSettings } from '@/lib/services/settings';
 import { getFeaturedProducts } from '@/lib/utils/catalog';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const featuredProducts = await getFeaturedProducts();
+  const [featuredProducts, settings] = await Promise.all([getFeaturedProducts(), getAllSettings()]);
+  const bottleMockupsEnabled = settings['products.bottleMockupsEnabled'] === 'true';
+
   return (
     <div className="space-y-16 md:space-y-20">
       <div className="full-bleed">
@@ -23,7 +26,7 @@ export default async function Home() {
       </div>
 
       <div className="pt-6 sm:pt-7 md:pt-8">
-        <PremiumSpotlight products={featuredProducts} />
+        <PremiumSpotlight products={featuredProducts} bottleMockupsEnabled={bottleMockupsEnabled} />
       </div>
 
       <section>
@@ -36,7 +39,7 @@ export default async function Home() {
             View Collection
           </Link>
         </div>
-        <ProductGrid products={featuredProducts} />
+        <ProductGrid products={featuredProducts} bottleMockupsEnabled={bottleMockupsEnabled} />
       </section>
 
       <AuthoritySection />

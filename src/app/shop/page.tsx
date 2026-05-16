@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 export default async function ShopPage() {
   const settings = await getAllSettings();
   const disableCategories = businessConfig.disableCategories || settings['store.disableCategories'] === 'true';
+  const bottleMockupsEnabled = settings['products.bottleMockupsEnabled'] === 'true';
 
   if (disableCategories) {
     const products = (await fetchAllProducts()).filter((product) => product.isActive);
@@ -21,7 +22,7 @@ export default async function ShopPage() {
           <h1 className="section-title">Shop</h1>
           <p className="mt-3 max-w-2xl text-[var(--color-muted)]">Explore all available research products in one collection.</p>
         </div>
-        <ProductGrid products={products} />
+        <ProductGrid products={products} bottleMockupsEnabled={bottleMockupsEnabled} />
       </div>
     );
   }

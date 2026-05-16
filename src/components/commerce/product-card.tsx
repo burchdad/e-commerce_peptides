@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { PremiumBottleMockup } from '@/components/commerce/premium-bottle-mockup';
+import { SafeImage } from '@/components/ui/safe-image';
 import { useCart } from '@/context/cart-context';
 import type { Product } from '@/lib/types';
 import { currency } from '@/lib/utils/format';
@@ -15,7 +16,7 @@ import {
   resolveVariantForProduct,
 } from '@/lib/utils/variants';
 
-export const ProductCard = ({ product }: { product: Product }) => {
+export const ProductCard = ({ product, bottleMockupsEnabled }: { product: Product; bottleMockupsEnabled: boolean }) => {
   const { addItem } = useCart();
   const [ack, setAck] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState(() => getInitialVariantSelection(product));
@@ -32,14 +33,26 @@ export const ProductCard = ({ product }: { product: Product }) => {
 
   return (
     <article className="group premium-surface rounded-[1.35rem] p-4 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.34)]">
-      <PremiumBottleMockup
-        imageSrc={primaryImage}
-        secondaryImageSrc={secondaryImage}
-        alt={product.name}
-        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 45vw, 30vw"
-        className="aspect-[4/5]"
-        useGroupHover
-      />
+      {bottleMockupsEnabled ? (
+        <PremiumBottleMockup
+          imageSrc={primaryImage}
+          secondaryImageSrc={secondaryImage}
+          alt={product.name}
+          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 45vw, 30vw"
+          className="aspect-[4/5]"
+          useGroupHover
+        />
+      ) : (
+        <div className="relative aspect-[4/5] overflow-hidden rounded-[1.1rem] border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
+          <SafeImage
+            src={primaryImage}
+            alt={product.name}
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 45vw, 30vw"
+            className="object-cover transition duration-500 group-hover:scale-105"
+            fallbackLabel="Product image"
+          />
+        </div>
+      )}
 
       <div className="mt-4">
         <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--color-gold)]">{product.category.replace('-', ' ')}</p>
