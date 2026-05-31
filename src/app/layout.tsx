@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   description: `${siteConfig.brandName} configurable research storefront and order workflow template.`,
   openGraph: {
     title: siteConfig.brandName,
-    description: `${siteConfig.brandName} configurable research storefront and accessories catalog.`,
+    description: `${siteConfig.brandName} configurable research storefront and order workflow.`,
     type: 'website',
   },
 };

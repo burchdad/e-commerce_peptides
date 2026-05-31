@@ -55,7 +55,6 @@ export const ProductCard = ({ product, bottleMockupsEnabled }: { product: Produc
       )}
 
       <div className="mt-4">
-        <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--color-gold)]">{product.category.replace('-', ' ')}</p>
         <h3 className="mt-2 font-serif text-[1.65rem] leading-tight text-[var(--color-text)] sm:text-2xl">{product.name}</h3>
         <p className="mt-2 text-sm text-[var(--color-muted)]">{product.subtitle}</p>
         {product.includesComplimentaryKit ? <p className="mt-3 text-xs uppercase tracking-[0.15em] text-[var(--color-gold)]">Complimentary kit included</p> : null}

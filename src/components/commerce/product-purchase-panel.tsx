@@ -55,8 +55,7 @@ export const ProductPurchasePanel = ({ product, selectedVariantId, onSelectedVar
 
   return (
     <div className="premium-surface rounded-2xl p-4 sm:rounded-[1.6rem] sm:p-8">
-      <p className="text-xs uppercase tracking-[0.25em] text-[var(--color-gold)]">{product.category.replace('-', ' ')}</p>
-      <h1 className="mt-3 font-serif text-[2.35rem] leading-none text-[var(--color-text)] md:text-5xl">{product.name}</h1>
+      <h1 className="font-serif text-[2.35rem] leading-none text-[var(--color-text)] md:text-5xl">{product.name}</h1>
       <p className="mt-3 text-base text-[var(--color-muted)] sm:text-lg">{product.subtitle}</p>
       <p className="mt-5 text-[var(--color-muted)]">{product.shortDescription}</p>
 

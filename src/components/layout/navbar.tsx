@@ -13,7 +13,6 @@ import { siteConfig } from '@/lib/config/site-config';
 const links = [
   { href: '/', label: 'Home' },
   { href: '/shop', label: 'Shop' },
-  { href: '/shop/accessories', label: 'Accessories' },
   { href: '/calculator', label: 'Calculator' },
   { href: '/coas', label: 'COAs' },
   { href: '/faq', label: 'FAQ' },

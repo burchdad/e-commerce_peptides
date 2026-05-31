@@ -626,18 +626,6 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
                 </div>
                 <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] px-4 py-3">
                   <span>
-                    <span className="block font-medium text-[var(--color-ivory)]">Show all products on one Shop page</span>
-                    <span className="text-xs text-[var(--color-sand)]">When active, /shop shows every active product together. When off, /shop shows category tiles and category pages.</span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 shrink-0 accent-[var(--color-gold)]"
-                    checked={settings['store.disableCategories'] === 'true'}
-                    onChange={(e) => setSetting('store.disableCategories', e.target.checked ? 'true' : 'false')}
-                  />
-                </label>
-                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] px-4 py-3">
-                  <span>
                     <span className="block font-medium text-[var(--color-ivory)]">Enable bottle mockups on storefront</span>
                     <span className="text-xs text-[var(--color-sand)]">When off, product cards and product pages show the uploaded product image without the bottle wrapper.</span>
                   </span>

@@ -12,7 +12,7 @@ export const ProductGrid = ({
   if (products.length === 0) {
     return (
       <div className="premium-surface rounded-xl border border-dashed p-8 text-center text-[var(--color-muted)]">
-        Products for this category are being prepared.
+        Products are being prepared.
       </div>
     );
   }

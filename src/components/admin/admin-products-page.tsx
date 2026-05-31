@@ -371,7 +371,6 @@ export const AdminProductsPage = ({
           mode={modal}
           form={form}
           setForm={setForm}
-          categories={categories}
           newImageUrl={newImageUrl}
           setNewImageUrl={setNewImageUrl}
           fileInputRef={fileInputRef}
@@ -445,7 +444,6 @@ const ProductRow = ({
       </td>
       <td className="py-3 px-3">
         <p className="font-medium text-[var(--color-ivory)]">{product.name}</p>
-        <p className="text-xs text-[var(--color-sand)]">{product.category}</p>
       </td>
       <td className="py-3 px-3 hidden md:table-cell text-[var(--color-sand)]">{product.sku}</td>
       <td className="py-3 px-3 text-[var(--color-ivory)]">
@@ -494,7 +492,6 @@ const ProductModal = ({
   mode,
   form,
   setForm,
-  categories,
   newImageUrl,
   setNewImageUrl,
   fileInputRef,
@@ -512,7 +509,6 @@ const ProductModal = ({
   mode: 'create' | 'edit';
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
-  categories: CategoryOption[];
   newImageUrl: string;
   setNewImageUrl: (v: string) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -633,26 +629,6 @@ const ProductModal = ({
                 <input className="input" type="number" min="0" value={form.stockQuantity} onChange={field('stockQuantity')} />
               </div>
             </div>
-          </fieldset>
-
-          {/* Category */}
-          <fieldset>
-            <legend className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold)] mb-3">Category</legend>
-            <select
-              className="input"
-              value={form.categorySlug}
-              onChange={(e) => {
-                const nextCategory = e.target.value;
-                setForm((prev) => ({ ...prev, categorySlug: nextCategory }));
-                if (shouldSkipBottleMockup(nextCategory, form.name)) {
-                  setWrapProductUploads(false);
-                }
-              }}
-            >
-              {categories.map((c) => (
-                <option key={c.slug} value={c.slug}>{c.name}</option>
-              ))}
-            </select>
           </fieldset>
 
           {/* Settings */}

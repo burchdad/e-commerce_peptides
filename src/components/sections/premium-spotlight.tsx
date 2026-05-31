@@ -56,8 +56,7 @@ export const PremiumSpotlight = ({
                 </div>
               )}
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--color-gold)]">{product.category.replace('-', ' ')}</p>
-                <h3 className="mt-2 font-serif text-[1.7rem] leading-tight text-[var(--color-ivory)] sm:text-3xl">{product.name}</h3>
+                <h3 className="font-serif text-[1.7rem] leading-tight text-[var(--color-ivory)] sm:text-3xl">{product.name}</h3>
                 <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{product.shortDescription}</p>
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                   <p className="font-serif text-[1.7rem] text-[var(--color-ivory)] sm:text-3xl">{currency(product.price)}</p>
