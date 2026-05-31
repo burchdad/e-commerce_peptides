@@ -3,13 +3,17 @@ import Link from 'next/link';
 import { SafeImage } from '@/components/ui/safe-image';
 import { complimentaryKitItems } from '@/lib/data/site';
 
-export const KitShowcase = () => {
+type KitShowcaseProps = {
+  imageUrl?: string;
+};
+
+export const KitShowcase = ({ imageUrl = '/images/kit/example_kit.jpg' }: KitShowcaseProps) => {
   return (
     <section className="premium-surface-soft relative grid items-center gap-5 overflow-hidden rounded-2xl p-4 sm:gap-8 sm:p-6 lg:grid-cols-[1fr_1.05fr] lg:p-9">
       <div className="peptide-overlay peptide-overlay-soft absolute inset-0" />
       <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] sm:aspect-[5/4] sm:rounded-2xl">
         <SafeImage
-          src="/images/kit/example_kit.jpg"
+          src={imageUrl}
           alt="Complimentary research kit"
           sizes="(max-width: 1024px) 100vw, 48vw"
           className="object-cover"

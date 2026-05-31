@@ -33,6 +33,7 @@ const orderSteps = [
 export default async function Home() {
   const [featuredProducts, settings] = await Promise.all([getFeaturedProducts(), getAllSettings()]);
   const bottleMockupsEnabled = settings['products.bottleMockupsEnabled'] === 'true';
+  const homeKitImageUrl = settings['branding.homeKitImageUrl'] || '/images/kit/example_kit.jpg';
 
   return (
     <div className="space-y-10 md:space-y-18">
@@ -44,7 +45,7 @@ export default async function Home() {
         <PremiumSpotlight products={featuredProducts} bottleMockupsEnabled={bottleMockupsEnabled} />
       </div>
 
-      <KitShowcase />
+      <KitShowcase imageUrl={homeKitImageUrl} />
 
       <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
         <div>

@@ -62,6 +62,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
   const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
   const [settingsSection, setSettingsSection] = useState<'store' | 'contact' | 'payment' | 'legal' | 'branding' | 'checkout'>('store');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [uploadingSetting, setUploadingSetting] = useState('');
 
   const [variantProductId, setVariantProductId] = useState(products[0]?.id ?? '');
   const [variantForm, setVariantForm] = useState({ name: '', sku: '', price: '0', stock: '0', sortOrder: '0', isDefault: false });
@@ -225,6 +226,34 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
       setStatusMessage(error instanceof Error ? error.message : 'Failed to save settings.');
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const onUploadSettingImage = async (key: string, file: File | null) => {
+    if (!file) return;
+
+    setUploadingSetting(key);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('renderStyle', 'plain');
+
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const body = await response.json().catch(() => ({ error: 'Upload failed.' })) as { url?: string; error?: string };
+
+      if (!response.ok || !body.url) {
+        throw new Error(body.error ?? 'Upload failed.');
+      }
+
+      setSetting(key, body.url);
+      setStatusMessage('Image uploaded. Save branding to publish it.');
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to upload image.');
+    } finally {
+      setUploadingSetting('');
     }
   };
 
@@ -599,8 +628,25 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
                     <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Default OG / Social Image URL</label>
                     <input className="input" placeholder="/images/brand/og-image.png" value={settings['branding.ogImageUrl'] ?? ''} onChange={(e) => setSetting('branding.ogImageUrl', e.target.value)} />
                   </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Homepage Kit Image</label>
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <input className="input" placeholder="/images/kit/example_kit.jpg" value={settings['branding.homeKitImageUrl'] ?? ''} onChange={(e) => setSetting('branding.homeKitImageUrl', e.target.value)} />
+                      <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-[var(--color-gold)] px-5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10">
+                        {uploadingSetting === 'branding.homeKitImageUrl' ? 'Uploading...' : 'Upload'}
+                        <input
+                          className="sr-only"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          disabled={uploadingSetting === 'branding.homeKitImageUrl'}
+                          onChange={(e) => void onUploadSettingImage('branding.homeKitImageUrl', e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--color-sand)]">This image appears in the complimentary kit section on the homepage.</p>
+                  </div>
                 </div>
-                <button className="btn-primary" disabled={savingSettings} onClick={() => onSaveSettings({ 'branding.siteName': settings['branding.siteName'] ?? '', 'branding.logoUrl': settings['branding.logoUrl'] ?? '', 'branding.footerLogoUrl': settings['branding.footerLogoUrl'] ?? '', 'branding.ogImageUrl': settings['branding.ogImageUrl'] ?? '' })}>
+                <button className="btn-primary" disabled={savingSettings} onClick={() => onSaveSettings({ 'branding.siteName': settings['branding.siteName'] ?? '', 'branding.logoUrl': settings['branding.logoUrl'] ?? '', 'branding.footerLogoUrl': settings['branding.footerLogoUrl'] ?? '', 'branding.ogImageUrl': settings['branding.ogImageUrl'] ?? '', 'branding.homeKitImageUrl': settings['branding.homeKitImageUrl'] ?? '' })}>
                   {savingSettings ? 'Saving…' : 'Save Branding'}
                 </button>
               </div>

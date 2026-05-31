@@ -21,6 +21,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   'branding.logoUrl': '',
   'branding.footerLogoUrl': '',
   'branding.ogImageUrl': '',
+  'branding.homeKitImageUrl': '/images/kit/example_kit.jpg',
 };
 
 export const getSetting = async (key: string): Promise<string> => {
