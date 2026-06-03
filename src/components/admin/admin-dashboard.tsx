@@ -71,7 +71,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
     name: '',
     type: 'percent' as 'percent' | 'fixed',
     minQuantity: '1',
-    value: '0',
+    value: '10',
     code: '',
     active: true,
   });
@@ -105,7 +105,10 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({ error: 'Request failed.' }));
-      throw new Error(body.error || 'Request failed.');
+      const fieldErrors = typeof body.error === 'object' ? body.error.fieldErrors : undefined;
+      const firstFieldError = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
+      const formError = typeof body.error === 'object' ? body.error.formErrors?.[0] : undefined;
+      throw new Error(typeof body.error === 'string' ? body.error : firstFieldError ?? formError ?? 'Request failed.');
     }
   };
 
@@ -146,20 +149,30 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
   };
 
   const onCreateDiscount = async () => {
-    await submitJson('/api/admin/discount-rules', 'POST', {
-      name: discountForm.name,
-      type: discountForm.type,
-      minQuantity: Number(discountForm.minQuantity),
-      value: Number(discountForm.value),
-      code: discountForm.code || undefined,
-      active: discountForm.active,
-    });
-    setStatusMessage('Discount rule saved. Refresh to load latest records.');
+    try {
+      await submitJson('/api/admin/discount-rules', 'POST', {
+        name: discountForm.name.trim(),
+        type: discountForm.type,
+        minQuantity: Number(discountForm.minQuantity),
+        value: Number(discountForm.value),
+        code: discountForm.code.trim() || undefined,
+        active: discountForm.active,
+      });
+      setStatusMessage('Discount rule saved.');
+      window.location.reload();
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to save discount rule.');
+    }
   };
 
   const onDeleteDiscount = async (id: string) => {
-    await submitJson(`/api/admin/discount-rules/${id}`, 'DELETE');
-    setStatusMessage('Discount rule deleted. Refresh to load latest records.');
+    try {
+      await submitJson(`/api/admin/discount-rules/${id}`, 'DELETE');
+      setStatusMessage('Discount rule deleted.');
+      window.location.reload();
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to delete discount rule.');
+    }
   };
 
   const onCreateCoa = async () => {
@@ -393,8 +406,16 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, products, legalPages, 
               </select>
               <input className="input" placeholder="Code (optional)" value={discountForm.code} onChange={(event) => setDiscountForm((prev) => ({ ...prev, code: event.target.value }))} />
               <input className="input" placeholder="Min quantity" type="number" value={discountForm.minQuantity} onChange={(event) => setDiscountForm((prev) => ({ ...prev, minQuantity: event.target.value }))} />
-              <input className="input" placeholder="Value" type="number" value={discountForm.value} onChange={(event) => setDiscountForm((prev) => ({ ...prev, value: event.target.value }))} />
+              <input className="input" placeholder={discountForm.type === 'percent' ? 'Percent off' : 'Amount off'} type="number" min="0.01" step="0.01" value={discountForm.value} onChange={(event) => setDiscountForm((prev) => ({ ...prev, value: event.target.value }))} />
             </div>
+            <label className="flex items-center gap-2 text-sm text-[var(--color-sand)]">
+              <input
+                type="checkbox"
+                checked={discountForm.active}
+                onChange={(event) => setDiscountForm((prev) => ({ ...prev, active: event.target.checked }))}
+              />
+              Active
+            </label>
             <button className="btn-primary" onClick={onCreateDiscount}>Save Discount</button>
             <div className="space-y-2">
               {discountRules.map((rule) => (

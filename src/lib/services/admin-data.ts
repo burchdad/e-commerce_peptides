@@ -422,6 +422,7 @@ export const upsertAdminDiscountRule = async (input: {
   code?: string;
 }) => {
   if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
+  const code = input.code?.trim() || null;
   const data = {
     name: input.name,
     type: toDiscountType(input.type),
@@ -430,20 +431,34 @@ export const upsertAdminDiscountRule = async (input: {
     eligibleProductIds: input.eligibleProductIds && input.eligibleProductIds.length > 0 ? input.eligibleProductIds : Prisma.JsonNull,
     eligibleCategoryIds: input.eligibleCategoryIds && input.eligibleCategoryIds.length > 0 ? input.eligibleCategoryIds : Prisma.JsonNull,
     active: input.active,
-    code: input.code || null,
+    code,
   };
 
-  const row = input.id
-    ? await prisma!.discountRule.update({ where: { id: input.id }, data })
-    : await prisma!.discountRule.create({ data });
+  try {
+    const row = input.id
+      ? await prisma!.discountRule.update({ where: { id: input.id }, data })
+      : await prisma!.discountRule.create({ data });
 
-  return { ok: true, id: row.id };
+    return { ok: true, id: row.id };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return { ok: false, message: 'That discount code already exists. Use a different code.' };
+    }
+    return { ok: false, message: error instanceof Error ? error.message : 'Failed to save discount rule.' };
+  }
 };
 
 export const deleteAdminDiscountRule = async (id: string) => {
   if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
-  await prisma!.discountRule.delete({ where: { id } });
-  return { ok: true };
+  try {
+    await prisma!.discountRule.delete({ where: { id } });
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return { ok: true };
+    }
+    return { ok: false, message: error instanceof Error ? error.message : 'Failed to delete discount rule.' };
+  }
 };
 
 export const getAdminCoadocuments = async () => {
