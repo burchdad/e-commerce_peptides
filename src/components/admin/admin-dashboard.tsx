@@ -303,7 +303,7 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
   const activeProduct = products.find((product) => product.id === variantProductId);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[230px_1fr]">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
       <aside className="flex flex-col rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-3">
         <div>
           <p className="px-3 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-gold)]">Admin</p>
@@ -324,7 +324,7 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
         </button>
       </aside>
 
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         {statusMessage ? <p className="text-sm text-[var(--color-sand)]">{statusMessage}</p> : null}
 
         {active === 'Dashboard' ? (
@@ -337,14 +337,14 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
         ) : null}
 
         {active === 'Orders' ? (
-          <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+          <section className="max-w-full overflow-hidden rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Orders</h2>
                 <p className="mt-1 text-sm text-[var(--color-sand)]">Click an order card to open its workspace.</p>
               </div>
             </div>
-            <div className="mt-5 overflow-x-auto pb-2">
+            <div className="mt-5 max-w-full overflow-x-auto pb-2">
               <div className="flex min-w-max gap-3">
                 {statusOptions.map((status) => {
                   const columnOrders = orders.filter((order) => order.status === status);
