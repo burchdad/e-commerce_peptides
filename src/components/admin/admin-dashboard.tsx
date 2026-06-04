@@ -75,6 +75,7 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
   const [active, setActive] = useState<AdminSection>('Dashboard');
   const [hasLoadedActiveSection, setHasLoadedActiveSection] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [visibleDiscountRules, setVisibleDiscountRules] = useState(discountRules);
   const [registrantSearch, setRegistrantSearch] = useState('');
   const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
   const [settingsSection, setSettingsSection] = useState<'store' | 'contact' | 'payment' | 'legal' | 'branding' | 'checkout'>('store');
@@ -147,7 +148,7 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
       throw new Error(typeof body.error === 'string' ? body.error : firstFieldError ?? formError ?? 'Request failed.');
     }
 
-    return body as { warning?: string };
+    return body as { data?: DiscountRule; warning?: string };
   };
 
   const filteredRegistrants = useMemo(() => {
@@ -196,7 +197,7 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
     const fallbackName = code || (discountForm.type === 'percent' ? `${discountForm.value}% discount` : `$${discountForm.value} discount`);
 
     try {
-      await submitJson('/api/admin/discount-rules', 'POST', {
+      const result = await submitJson('/api/admin/discount-rules', 'POST', {
         name: discountForm.name.trim() || fallbackName,
         type: discountForm.type,
         minQuantity: Number(discountForm.minQuantity),
@@ -204,8 +205,23 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
         code: code || undefined,
         active: discountForm.active,
       });
+
+      if (result.data) {
+        setVisibleDiscountRules((prev) => [
+          result.data!,
+          ...prev.filter((rule) => rule.id !== result.data!.id),
+        ]);
+      }
+
+      setDiscountForm({
+        name: '',
+        type: 'percent',
+        minQuantity: '1',
+        value: '10',
+        code: '',
+        active: true,
+      });
       setStatusMessage('Discount rule saved.');
-      refreshAdminSection();
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Failed to save discount rule.');
     }
@@ -214,8 +230,8 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
   const onDeleteDiscount = async (id: string) => {
     try {
       await submitJson(`/api/admin/discount-rules/${id}`, 'DELETE');
+      setVisibleDiscountRules((prev) => prev.filter((rule) => rule.id !== id));
       setStatusMessage('Discount rule deleted.');
-      refreshAdminSection();
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Failed to delete discount rule.');
     }
@@ -357,7 +373,7 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
             <StatCard label="Products" value={String(products.length)} />
             <StatCard label="Orders" value={String(orders.length)} />
             <StatCard label="Age Gate Registrants" value={String(ageGateRegistrants.length)} />
-            <StatCard label="Active Discounts" value={String(discountRules.filter((rule) => rule.active).length)} />
+            <StatCard label="Active Discounts" value={String(visibleDiscountRules.filter((rule) => rule.active).length)} />
           </section>
         ) : null}
 
@@ -489,7 +505,7 @@ export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrant
             </label>
             <button className="btn-primary" onClick={onCreateDiscount}>Save Discount</button>
             <div className="space-y-2">
-              {discountRules.map((rule) => (
+              {visibleDiscountRules.map((rule) => (
                 <div key={rule.id} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3 text-sm text-[var(--color-sand)]">
                   <span>{rule.name} | {rule.type} | min {rule.minQuantity}</span>
                   <button className="text-xs text-red-300" onClick={() => onDeleteDiscount(rule.id)}>Delete</button>

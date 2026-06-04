@@ -439,7 +439,21 @@ export const upsertAdminDiscountRule = async (input: {
       ? await prisma!.discountRule.update({ where: { id: input.id }, data })
       : await prisma!.discountRule.create({ data });
 
-    return { ok: true, id: row.id };
+    return {
+      ok: true,
+      id: row.id,
+      data: {
+        id: row.id,
+        name: row.name,
+        type: fromDiscountType(row.type),
+        minQuantity: row.minQuantity,
+        value: Number(row.value),
+        eligibleProductIds: (row.eligibleProductIds as string[] | null) ?? undefined,
+        eligibleCategoryIds: (row.eligibleCategoryIds as string[] | null) ?? undefined,
+        active: row.active,
+        code: row.code ?? undefined,
+      },
+    };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { ok: false, message: 'That discount code already exists. Use a different code.' };
