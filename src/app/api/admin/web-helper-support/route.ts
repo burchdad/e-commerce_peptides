@@ -19,6 +19,15 @@ const envValue = (key: string, fallback: string) => {
   return value && value.length > 0 ? value : fallback;
 };
 
+const envList = (key: string, fallback: string[]) => {
+  const value = process.env[key]?.trim();
+  if (!value) return fallback;
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -44,10 +53,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Mission Control webhook secret is not configured.' }, { status: 500 });
   }
 
+  const site = envValue('GHOST_SITE_URL', 'https://www.peppersandvibes.com');
+  const siteAliases = envList('GHOST_SITE_ALIASES', ['https://www.peppersnvibes.com']);
+
   const payload = {
     client: envValue('GHOST_CLIENT_NAME', 'Peppers and Vibes'),
     client_id: envValue('GHOST_CLIENT_ID', 'peppers-and-vibes'),
-    site: envValue('GHOST_SITE_URL', 'https://www.peppersandvibes.com'),
+    site,
+    site_aliases: Array.from(new Set([site, ...siteAliases])),
     repo: envValue('GHOST_REPO', 'burchdad/e-commerce_peptides'),
     source: 'client_admin_dashboard',
     request_type: parsed.data.requestType,
