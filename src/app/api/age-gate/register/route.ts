@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { isAtLeastMinimumAge } from '@/lib/age-gate';
 import { createAgeGateRegistrant } from '@/lib/services/admin-data';
 
 const COOKIE_KEY = 'pv_age_gate_expires';
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     console.warn('[age-gate/register] invalid payload');
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  if (!isAtLeastMinimumAge(parsed.data.dob)) {
+    console.warn('[age-gate/register] underage or invalid dob');
+    return NextResponse.json({ error: 'Age verification failed.' }, { status: 400 });
   }
 
   const expiresAt = Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000;

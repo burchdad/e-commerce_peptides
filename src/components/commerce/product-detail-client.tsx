@@ -7,7 +7,13 @@ import { ProductPurchasePanel } from '@/components/commerce/product-purchase-pan
 import type { Product, ProductImageMap } from '@/lib/types';
 import { getInitialVariantSelection, resolveVariantForProduct } from '@/lib/utils/variants';
 
-export const ProductDetailClient = ({ product }: { product: Product }) => {
+export const ProductDetailClient = ({
+  product,
+  bottleMockupsEnabled,
+}: {
+  product: Product;
+  bottleMockupsEnabled: boolean;
+}) => {
   const [selectedVariantId, setSelectedVariantId] = useState(() => getInitialVariantSelection(product));
   const selectedVariant = resolveVariantForProduct(product, selectedVariantId);
 
@@ -30,6 +36,7 @@ export const ProductDetailClient = ({ product }: { product: Product }) => {
         key={`${product.id}:${selectedVariant.id}:${images.primary}`}
         productName={`${product.name} ${selectedVariant.name}`}
         images={images}
+        bottleMockupsEnabled={bottleMockupsEnabled}
       />
       <ProductPurchasePanel
         product={product}

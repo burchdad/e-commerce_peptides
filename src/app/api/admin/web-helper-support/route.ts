@@ -1,7 +1,30 @@
+import { createHash } from 'node:crypto';
+
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { isAdminAuthenticated } from '@/lib/auth/admin';
+
+const weakSupportText = new Set([
+  'bug',
+  'fix',
+  'help',
+  'issue',
+  'n/a',
+  'na',
+  'none',
+  'test',
+  'testing',
+  'todo',
+  'what should change?',
+]);
+
+const normalizeSupportText = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const hasUsefulSupportDetail = (value: string, minLength: number) => {
+  const normalized = normalizeSupportText(value);
+  return normalized.length >= minLength && !weakSupportText.has(normalized);
+};
 
 const supportTicketSchema = z.object({
   pageUrl: z.string().trim().min(1, 'Page or section is required.'),
@@ -9,8 +32,20 @@ const supportTicketSchema = z.object({
   requesterEmail: z.string().trim().optional().default(''),
   requestType: z.string().trim().min(1).default('other'),
   priority: z.string().trim().min(1).default('normal'),
-  summary: z.string().trim().min(3, 'A short summary is required.'),
-  details: z.string().trim().min(5, 'Request details are required.'),
+  summary: z
+    .string()
+    .trim()
+    .refine(
+      (value) => hasUsefulSupportDetail(value, 12),
+      'Add a specific short summary, like "Update checkout shipping text" or "Fix product image on shop page."',
+    ),
+  details: z
+    .string()
+    .trim()
+    .refine(
+      (value) => hasUsefulSupportDetail(value, 35),
+      'Add enough detail for the Web Helper: where it appears, what should change, and the expected result.',
+    ),
   acknowledged: z.boolean(),
 });
 
@@ -19,14 +54,37 @@ const envValue = (key: string, fallback: string) => {
   return value && value.length > 0 ? value : fallback;
 };
 
+const stripWrappingQuotes = (value: string) => {
+  const text = value.trim();
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    return text.slice(1, -1).trim();
+  }
+
+  return text;
+};
+
 const envList = (key: string, fallback: string[]) => {
   const value = process.env[key]?.trim();
   if (!value) return fallback;
+
   return value
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
 };
+
+const configuredWebhookSecrets = () => {
+  const secrets = [
+    process.env.GHOST_WEB_HELPER_WEBHOOK_SECRET,
+    process.env.GHOST_MISSION_CONTROL_WEBHOOK_SECRET,
+  ]
+    .map((value) => stripWrappingQuotes(value?.trim() ?? ''))
+    .filter(Boolean);
+
+  return Array.from(new Set(secrets));
+};
+
+const secretFingerprint = (value: string) => createHash('sha256').update(stripWrappingQuotes(value)).digest('hex').slice(0, 12);
 
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
@@ -44,23 +102,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Support request acknowledgement is required.' }, { status: 400 });
   }
 
+  const webhookSecrets = configuredWebhookSecrets();
+  if (!webhookSecrets.length) {
+    return NextResponse.json({ error: 'Mission Control webhook secret is not configured.' }, { status: 500 });
+  }
+
   const webhookUrl = envValue(
     'GHOST_MISSION_CONTROL_WEBHOOK_URL',
     'https://ghostmissioncontrol-production.up.railway.app/mission/web-helper-requests',
   );
-  const webhookSecret = process.env.GHOST_MISSION_CONTROL_WEBHOOK_SECRET?.trim();
-  if (!webhookSecret) {
-    return NextResponse.json({ error: 'Mission Control webhook secret is not configured.' }, { status: 500 });
-  }
-
   const site = envValue('GHOST_SITE_URL', 'https://www.peppersandvibes.com');
   const siteAliases = envList('GHOST_SITE_ALIASES', ['https://www.peppersnvibes.com']);
+  const siteAliasSet = new Set([site, ...siteAliases]);
 
   const payload = {
     client: envValue('GHOST_CLIENT_NAME', 'Peppers and Vibes'),
     client_id: envValue('GHOST_CLIENT_ID', 'peppers-and-vibes'),
     site,
-    site_aliases: Array.from(new Set([site, ...siteAliases])),
+    site_aliases: Array.from(siteAliasSet),
     repo: envValue('GHOST_REPO', 'burchdad/e-commerce_peptides'),
     source: 'client_admin_dashboard',
     request_type: parsed.data.requestType,
@@ -76,26 +135,60 @@ export async function POST(request: Request) {
     web_helper_id: envValue('GHOST_WEB_HELPER_ID', 'peppers-and-vibes-web-helper'),
   };
 
-  const response = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Ghost-Webhook-Secret': webhookSecret,
-    },
-    body: JSON.stringify(payload),
-  });
+  let response: Response | null = null;
+  let result: unknown = null;
 
-  const result = await response.json().catch(() => null);
-  if (!response.ok) {
+  for (const webhookSecret of webhookSecrets) {
+    response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Ghost-Webhook-Secret': webhookSecret,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    result = await response.json().catch(() => null);
+
+    if (response.ok || response.status !== 401) {
+      break;
+    }
+  }
+
+  if (!response?.ok) {
+    const missionResult = result as {
+      error?: string;
+      detail?: {
+        provided_fingerprint?: string;
+        accepted_fingerprints?: string[];
+        accepted_secret_count?: number;
+      };
+    } | null;
+
     return NextResponse.json(
-      { error: result?.error ?? 'Mission Control did not accept the support request.', detail: result?.detail },
-      { status: response.status },
+      {
+        error: missionResult?.error ?? 'Mission Control did not accept the support request.',
+        detail: {
+          mission_control: missionResult?.detail,
+          webhook_url: webhookUrl,
+          attempted_secret_count: webhookSecrets.length,
+          attempted_secret_fingerprints: webhookSecrets.map(secretFingerprint),
+        },
+      },
+      { status: response?.status ?? 502 },
     );
   }
 
+  const missionResult = result as {
+    ticketId?: string;
+    id?: string;
+    request?: { id?: string };
+    ticket?: { id?: string };
+  } | null;
+
   return NextResponse.json({
     success: true,
-    ticketId: result?.ticketId ?? result?.id ?? result?.request?.id ?? result?.ticket?.id,
-    missionControl: result,
+    ticketId: missionResult?.ticketId ?? missionResult?.id ?? missionResult?.request?.id ?? missionResult?.ticket?.id,
+    missionControl: missionResult,
   });
 }

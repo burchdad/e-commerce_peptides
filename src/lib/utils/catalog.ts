@@ -7,7 +7,10 @@ export const getCategoryBySlug = (slug: string) => categories.find((category) =>
 export const fetchAllProducts = async () => {
   try {
     return await getAdminProducts();
-  } catch {
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw error;
+    }
     return products;
   }
 };

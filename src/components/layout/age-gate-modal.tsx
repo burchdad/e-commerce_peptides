@@ -2,11 +2,32 @@
 
 import { useEffect, useState } from 'react';
 
+import { calculateAge, MINIMUM_AGE, parseDateOfBirth } from '@/lib/age-gate';
+
 const STORAGE_KEY = 'pv-age-gate-v2';
 const EXPIRY_DAYS = 30;
-const MIN_AGE = 21;
 
 const COOKIE_KEY = 'pv_age_gate_expires';
+
+const monthOptions = [
+  ['01', 'January'],
+  ['02', 'February'],
+  ['03', 'March'],
+  ['04', 'April'],
+  ['05', 'May'],
+  ['06', 'June'],
+  ['07', 'July'],
+  ['08', 'August'],
+  ['09', 'September'],
+  ['10', 'October'],
+  ['11', 'November'],
+  ['12', 'December'],
+];
+const dayOptions = Array.from({ length: 31 }, (_, index) => String(index + 1).padStart(2, '0'));
+const yearOptions = Array.from(
+  { length: new Date().getFullYear() - 1899 },
+  (_, index) => String(new Date().getFullYear() - index),
+);
 
 const readCookieExpiry = (): number | null => {
   if (typeof document === 'undefined') return null;
@@ -81,52 +102,17 @@ const storeVerification = () => {
   writeCookieExpiry(expires);
 };
 
-const parseDob = (dob: string): Date | null => {
-  const normalized = dob.trim();
-  const isoLikeMatch = normalized.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
-  const usLikeMatch = normalized.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-
-  let year: number;
-  let month: number;
-  let day: number;
-
-  if (isoLikeMatch) {
-    year = Number(isoLikeMatch[1]);
-    month = Number(isoLikeMatch[2]);
-    day = Number(isoLikeMatch[3]);
-  } else if (usLikeMatch) {
-    month = Number(usLikeMatch[1]);
-    day = Number(usLikeMatch[2]);
-    year = Number(usLikeMatch[3]);
-  } else {
-    return null;
-  }
-
-  if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900) return null;
-
-  // Use a fixed local-midday timestamp to avoid timezone edge cases.
-  const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
-  if (Number.isNaN(parsed.getTime())) return null;
-  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) return null;
-  return parsed;
-};
-
-const calculateAge = (birth: Date): number => {
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-};
-
 export const AgeGateModal = () => {
   const [open, setOpen] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
-  const [dob, setDob] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthDay, setBirthDay] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const [confirmed21Plus, setConfirmed21Plus] = useState(false);
   const [error, setError] = useState('');
+  const dob = birthMonth && birthDay && birthYear ? `${birthYear}-${birthMonth}-${birthDay}` : '';
 
   useEffect(() => {
     const verified = isVerified();
@@ -149,7 +135,7 @@ export const AgeGateModal = () => {
     if (!ageGateError) return;
 
     if (ageGateError === 'underage') {
-      setError(`You must be at least ${MIN_AGE} years old to access this site.`);
+      setError(`You must be at least ${MINIMUM_AGE} years old to access this site.`);
     } else {
       setError('Please complete all required fields to continue.');
     }
@@ -171,8 +157,8 @@ export const AgeGateModal = () => {
     if (!firstNameParam || !emailParam || !dobParam || !confirmedParam) return;
 
     const emailValid = emailParam.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailParam);
-    const parsedDob = parseDob(dobParam);
-    if (!emailValid || !parsedDob || calculateAge(parsedDob) < MIN_AGE) return;
+    const parsedDob = parseDateOfBirth(dobParam);
+    if (!emailValid || !parsedDob || calculateAge(parsedDob) < MINIMUM_AGE) return;
 
     storeVerification();
     setOpen(false);
@@ -275,7 +261,7 @@ export const AgeGateModal = () => {
       setError('Please enter a valid email address.');
       return;
     }
-    const parsedDob = parseDob(dobValue);
+    const parsedDob = parseDateOfBirth(dobValue);
     if (!parsedDob) {
       setError('Please enter a valid date of birth.');
       return;
@@ -285,8 +271,8 @@ export const AgeGateModal = () => {
       setError('Please enter a valid date of birth.');
       return;
     }
-    if (age < MIN_AGE) {
-      setError(`You must be at least ${MIN_AGE} years old to access this site.`);
+    if (age < MINIMUM_AGE) {
+      setError(`You must be at least ${MINIMUM_AGE} years old to access this site.`);
       return;
     }
 
@@ -383,20 +369,61 @@ export const AgeGateModal = () => {
           <label htmlFor="dob" className="block text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
             Date of Birth
           </label>
-          <input
-            id="dob"
-            type="text"
-            name="dob"
-            value={dob}
-            onChange={(e) => {
-              setDob(e.target.value);
-              setError('');
-            }}
-            placeholder="YYYY-MM-DD or MM/DD/YYYY"
-            inputMode="numeric"
-            autoComplete="bday"
-            className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-4 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)] [color-scheme:dark]"
-          />
+          <input type="hidden" name="dob" value={dob} />
+          <div className="mt-2 grid grid-cols-[1.2fr_0.8fr_1fr] gap-2">
+            <select
+              id="dob"
+              value={birthMonth}
+              onChange={(e) => {
+                setBirthMonth(e.target.value);
+                setError('');
+              }}
+              autoComplete="bday-month"
+              aria-label="Birth month"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-3 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)] [color-scheme:dark]"
+            >
+              <option value="">Month</option>
+              {monthOptions.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={birthDay}
+              onChange={(e) => {
+                setBirthDay(e.target.value);
+                setError('');
+              }}
+              autoComplete="bday-day"
+              aria-label="Birth day"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-3 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)] [color-scheme:dark]"
+            >
+              <option value="">Day</option>
+              {dayOptions.map((day) => (
+                <option key={day} value={day}>
+                  {Number(day)}
+                </option>
+              ))}
+            </select>
+            <select
+              value={birthYear}
+              onChange={(e) => {
+                setBirthYear(e.target.value);
+                setError('');
+              }}
+              autoComplete="bday-year"
+              aria-label="Birth year"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[rgba(0,0,0,0.35)] px-3 py-3 text-sm text-[var(--color-ivory)] outline-none focus:border-[var(--color-gold)] [color-scheme:dark]"
+            >
+              <option value="">Year</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <label className="mt-5 flex items-start gap-2 text-xs text-[var(--color-sand)]">

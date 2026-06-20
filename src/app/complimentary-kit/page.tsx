@@ -17,9 +17,9 @@ export default function ComplimentaryKitPage() {
 
       <section className="premium-surface-soft rounded-2xl p-6">
         <h2 className="font-serif text-3xl text-[var(--color-text)]">Need extras?</h2>
-        <p className="mt-3 text-[var(--color-muted)]">All kit components are available in the accessories catalog as standalone add-ons.</p>
-        <Link className="btn-primary mt-4 inline-flex" href="/shop/accessories">
-          Shop Accessories
+        <p className="mt-3 text-[var(--color-muted)]">Standalone add-ons can be included with available products in the main shop.</p>
+        <Link className="btn-primary mt-4 inline-flex" href="/shop">
+          Shop Products
         </Link>
       </section>
     </div>

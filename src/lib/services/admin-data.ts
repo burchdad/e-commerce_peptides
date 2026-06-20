@@ -7,9 +7,12 @@ import {
   Prisma,
 } from '@prisma/client';
 
+import { formatDateOfBirthForStorage } from '@/lib/age-gate';
 import { categories, faqs, legal, products } from '@/lib/data/site';
 import { hasDatabaseUrl, prisma } from '@/lib/db';
 import type { ProductImageMap } from '@/lib/types';
+
+const requiresDatabaseCatalog = process.env.NODE_ENV === 'production';
 
 const toProductImages = (value: unknown): ProductImageMap => {
   if (value && typeof value === 'object' && 'primary' in (value as Record<string, unknown>)) {
@@ -83,7 +86,12 @@ const toVariant = (variant: PrismaProductVariant) => ({
 });
 
 export const getAdminProducts = async () => {
-  if (!hasDatabaseUrl) return products;
+  if (!hasDatabaseUrl) {
+    if (requiresDatabaseCatalog) {
+      throw new Error('DATABASE_URL is required for the production catalog.');
+    }
+    return products;
+  }
   try {
     const rows = await prisma!.product.findMany({
       include: { category: true, variants: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
@@ -96,7 +104,10 @@ export const getAdminProducts = async () => {
         variants: row.variants.map(toVariant),
       };
     });
-  } catch {
+  } catch (error) {
+    if (requiresDatabaseCatalog) {
+      throw error;
+    }
     return products;
   }
 };
@@ -106,7 +117,17 @@ export const createAdminProduct = async (input: ProductInput) => {
     return { ok: false, message: 'DATABASE_URL not configured. Use local seed data mode.' };
   }
 
-  const category = await prisma!.category.findUnique({ where: { slug: input.categorySlug } });
+  const staticCategory = categories.find((entry) => entry.slug === input.categorySlug);
+  const category = await prisma!.category.upsert({
+    where: { slug: input.categorySlug },
+    update: {},
+    create: {
+      name: staticCategory?.name ?? input.categorySlug,
+      slug: input.categorySlug,
+      description: staticCategory?.description ?? 'Storefront products.',
+      isFuture: staticCategory?.isFuture ?? false,
+    },
+  });
   if (!category) {
     return { ok: false, message: 'Category not found.' };
   }
@@ -130,7 +151,24 @@ export const createAdminProduct = async (input: ProductInput) => {
     category: { connect: { id: category.id } },
   };
 
-  const created = await prisma!.product.create({ data, include: { category: true, variants: true } });
+  const created = await prisma!.product.create({
+    data: {
+      ...data,
+      variants: {
+        create: {
+          name: 'Standard',
+          sku: input.sku,
+          price: input.price,
+          compareAtPrice: input.compareAtPrice ?? null,
+          stock: input.stockQuantity,
+          active: input.isActive ?? true,
+          isDefault: true,
+          sortOrder: 0,
+        },
+      },
+    },
+    include: { category: true, variants: true },
+  });
   return {
     ok: true,
     message: 'Product created.',
@@ -173,11 +211,39 @@ export const updateAdminProduct = async (id: string, patch: Partial<ProductInput
     data.category = { connect: { id: category.id } };
   }
 
-  const updated = await prisma!.product.update({
-    where: { id },
-    data,
-    include: { category: true, variants: true },
+  const updated = await prisma!.$transaction(async (tx) => {
+    const product = await tx.product.update({
+      where: { id },
+      data,
+      include: { category: true, variants: true },
+    });
+
+    if (patch.price !== undefined || patch.compareAtPrice !== undefined) {
+      const defaultVariant = product.variants.find((variant) => variant.isDefault);
+      const singleVariant = product.variants.length === 1 ? product.variants[0] : null;
+      const variantToSync = defaultVariant ?? singleVariant;
+
+      if (variantToSync) {
+        await tx.productVariant.update({
+          where: { id: variantToSync.id },
+          data: {
+            ...(patch.price !== undefined ? { price: patch.price } : {}),
+            ...(patch.compareAtPrice !== undefined
+              ? { compareAtPrice: patch.compareAtPrice ?? null }
+              : {}),
+          },
+        });
+
+        return tx.product.findUniqueOrThrow({
+          where: { id },
+          include: { category: true, variants: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
+        });
+      }
+    }
+
+    return product;
   });
+
   return {
     ok: true,
     message: 'Product updated.',
@@ -356,6 +422,7 @@ export const upsertAdminDiscountRule = async (input: {
   code?: string;
 }) => {
   if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
+  const code = input.code?.trim() || null;
   const data = {
     name: input.name,
     type: toDiscountType(input.type),
@@ -364,20 +431,48 @@ export const upsertAdminDiscountRule = async (input: {
     eligibleProductIds: input.eligibleProductIds && input.eligibleProductIds.length > 0 ? input.eligibleProductIds : Prisma.JsonNull,
     eligibleCategoryIds: input.eligibleCategoryIds && input.eligibleCategoryIds.length > 0 ? input.eligibleCategoryIds : Prisma.JsonNull,
     active: input.active,
-    code: input.code || null,
+    code,
   };
 
-  const row = input.id
-    ? await prisma!.discountRule.update({ where: { id: input.id }, data })
-    : await prisma!.discountRule.create({ data });
+  try {
+    const row = input.id
+      ? await prisma!.discountRule.update({ where: { id: input.id }, data })
+      : await prisma!.discountRule.create({ data });
 
-  return { ok: true, id: row.id };
+    return {
+      ok: true,
+      id: row.id,
+      data: {
+        id: row.id,
+        name: row.name,
+        type: fromDiscountType(row.type),
+        minQuantity: row.minQuantity,
+        value: Number(row.value),
+        eligibleProductIds: (row.eligibleProductIds as string[] | null) ?? undefined,
+        eligibleCategoryIds: (row.eligibleCategoryIds as string[] | null) ?? undefined,
+        active: row.active,
+        code: row.code ?? undefined,
+      },
+    };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return { ok: false, message: 'That discount code already exists. Use a different code.' };
+    }
+    return { ok: false, message: error instanceof Error ? error.message : 'Failed to save discount rule.' };
+  }
 };
 
 export const deleteAdminDiscountRule = async (id: string) => {
   if (!hasDatabaseUrl) return { ok: false, message: 'DATABASE_URL not configured.' };
-  await prisma!.discountRule.delete({ where: { id } });
-  return { ok: true };
+  try {
+    await prisma!.discountRule.delete({ where: { id } });
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return { ok: true };
+    }
+    return { ok: false, message: error instanceof Error ? error.message : 'Failed to delete discount rule.' };
+  }
 };
 
 export const getAdminCoadocuments = async () => {
@@ -536,12 +631,17 @@ export const createAgeGateRegistrant = async (input: {
   if (!hasDatabaseUrl) {
     return { ok: true, persisted: false, message: 'DATABASE_URL not configured.' };
   }
+  const normalizedDob = formatDateOfBirthForStorage(input.dob);
+  if (!normalizedDob) {
+    return { ok: false, persisted: false, message: 'Invalid date of birth.' };
+  }
+
   try {
     await prisma!.ageGateRegistrant.create({
       data: {
         firstName: input.firstName,
         email: input.email,
-        dob: new Date(input.dob),
+        dob: new Date(`${normalizedDob}T12:00:00`),
         verifiedAt: new Date(input.verifiedAt),
       },
     });

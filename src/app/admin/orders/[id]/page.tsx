@@ -48,9 +48,9 @@ export default async function AdminOrderDetailPage({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-xl border border-[var(--color-border)] bg-white p-5">
-          <h2 className="font-serif text-2xl text-[var(--color-text)]">Customer Info</h2>
-          <dl className="mt-4 grid gap-3 text-sm text-[var(--color-text)]">
+        <section className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+          <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Customer Info</h2>
+          <dl className="mt-4 grid gap-3 text-sm text-[var(--color-ivory)]">
             <Detail label="Name" value={order.customerName} />
             <Detail label="Email" value={order.email} />
             <Detail label="Phone" value={order.phone} />
@@ -59,9 +59,9 @@ export default async function AdminOrderDetailPage({
           </dl>
         </section>
 
-        <section className="rounded-xl border border-[var(--color-border)] bg-white p-5">
-          <h2 className="font-serif text-2xl text-[var(--color-text)]">Acknowledgements</h2>
-          <ul className="mt-4 space-y-2 text-sm text-[var(--color-text)]">
+        <section className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+          <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Acknowledgements</h2>
+          <ul className="mt-4 space-y-2 text-sm text-[var(--color-ivory)]">
             <li>Information accurate: {order.acknowledgements.informationAccurate ? 'Yes' : 'No'}</li>
             <li>Terms accepted: {order.acknowledgements.termsAccepted ? 'Yes' : 'No'}</li>
             <li>Verification accepted: {order.acknowledgements.verificationAccepted ? 'Yes' : 'No'}</li>
@@ -69,11 +69,11 @@ export default async function AdminOrderDetailPage({
         </section>
       </div>
 
-      <section className="rounded-xl border border-[var(--color-border)] bg-white p-5">
-        <h2 className="font-serif text-2xl text-[var(--color-text)]">Items Ordered</h2>
+      <section className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+        <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Items Ordered</h2>
         <div className="mt-3 overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-[0.14em] text-[var(--color-muted)]">
+          <table className="min-w-full text-left text-sm text-[var(--color-ivory)]">
+            <thead className="text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">
               <tr>
                 <th className="py-2 pr-3">Item</th>
                 <th className="py-2 pr-3">Qty</th>
@@ -83,7 +83,7 @@ export default async function AdminOrderDetailPage({
             </thead>
             <tbody>
               {order.items.map((item) => (
-                <tr key={`${item.productName}-${item.sku ?? 'item'}`} className="border-t border-[var(--color-border)]">
+                <tr key={`${item.productName}-${item.sku ?? 'item'}`} className="border-t border-[var(--color-gold-soft)]">
                   <td className="py-2 pr-3">{item.variantName ? `${item.productName} (${item.variantName})` : item.productName}</td>
                   <td className="py-2 pr-3">{item.quantity}</td>
                   <td className="py-2 pr-3">{currency(item.unitPrice)}</td>
@@ -96,9 +96,9 @@ export default async function AdminOrderDetailPage({
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-xl border border-[var(--color-border)] bg-white p-5">
-          <h2 className="font-serif text-2xl text-[var(--color-text)]">Order Timeline</h2>
-          <ul className="mt-4 space-y-2 text-sm text-[var(--color-text)]">
+        <section className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+          <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Order Timeline</h2>
+          <ul className="mt-4 space-y-2 text-sm text-[var(--color-ivory)]">
             <TimelineItem label="Created" value={order.timeline.createdAt} />
             <TimelineItem label="Reviewed" value={order.timeline.reviewedAt} />
             <TimelineItem label="Approved" value={order.timeline.approvedAt} />
@@ -118,14 +118,14 @@ export default async function AdminOrderDetailPage({
 
 const Detail = ({ label, value }: { label: string; value: string }) => (
   <div>
-    <dt className="text-xs uppercase tracking-[0.14em] text-[var(--color-muted)]">{label}</dt>
-    <dd className="mt-1">{value}</dd>
+    <dt className="text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">{label}</dt>
+    <dd className="mt-1 break-words leading-relaxed text-[var(--color-ivory)]">{value}</dd>
   </div>
 );
 
 const TimelineItem = ({ label, value }: { label: string; value?: string }) => (
-  <li className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-2 last:border-b-0">
-    <span className="text-[var(--color-muted)]">{label}</span>
+  <li className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-gold-soft)] pb-2 last:border-b-0">
+    <span className="text-[var(--color-gold)]">{label}</span>
     <span>{value ? new Date(value).toLocaleString() : '—'}</span>
   </li>
 );

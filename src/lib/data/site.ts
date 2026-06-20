@@ -291,9 +291,8 @@ export const faqs: FaqItem[] = [
       'Each qualifying peptide purchase includes a premium complimentary research kit with preparation and handling accessories.',
   },
   {
-    question: 'Can I purchase accessories separately?',
-    answer:
-      'Yes. Accessories are available as standalone products in the Accessories & Supplies section.',
+    question: 'Can I purchase standalone add-ons?',
+    answer: 'Yes. Standalone add-ons can be included from the main shop when available.',
   },
   {
     question: 'How does payment work during MVP checkout?',
@@ -308,13 +307,6 @@ export const faqs: FaqItem[] = [
 ];
 
 export const paymentMethods: PaymentMethod[] = [
-  {
-    id: 'paypal',
-    label: 'PayPal',
-    description: 'Receive invoice/payment instructions for PayPal after order review.',
-    enabled: true,
-    mode: 'invoice',
-  },
   {
     id: 'venmo',
     label: 'Venmo',

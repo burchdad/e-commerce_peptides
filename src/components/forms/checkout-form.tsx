@@ -174,7 +174,12 @@ export const CheckoutForm = ({
     setSubmitting(false);
 
     if (!response.ok) {
-      setMessage('Order request failed. Please review your information.');
+      const payload = await response.json().catch(() => ({ error: 'Order request failed. Please review your information.' })) as { error?: string | { fieldErrors?: Record<string, string[]>; formErrors?: string[] } };
+      const error = payload.error;
+      const fieldErrors = typeof error === 'object' ? error.fieldErrors : undefined;
+      const firstFieldError = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
+      const formError = typeof error === 'object' ? error.formErrors?.[0] : undefined;
+      setMessage(typeof error === 'string' ? error : firstFieldError ?? formError ?? 'Order request failed. Please review your information.');
       return;
     }
 
@@ -198,7 +203,7 @@ export const CheckoutForm = ({
   return (
     <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
       <div className="space-y-5">
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
           {stepLabels.map((label, index) => {
             const isActive = index === step;
             const isComplete = index < step;
@@ -206,17 +211,17 @@ export const CheckoutForm = ({
             return (
               <div
                 key={label}
-                className={`rounded-xl border px-4 py-3 text-xs uppercase tracking-[0.16em] transition ${isActive ? 'border-[var(--color-gold)] bg-[rgba(212,175,55,0.15)] text-[var(--color-text)] shadow-[0_0_18px_rgba(212,175,55,0.2)]' : isComplete ? 'border-[var(--color-border)] bg-[rgba(0,0,0,0.2)] text-[var(--color-text)]' : 'border-[var(--color-border)] bg-transparent text-[var(--color-muted)]'}`}
+                className={`min-w-0 overflow-hidden rounded-xl border px-2 py-3 text-[9px] uppercase tracking-[0.08em] transition sm:px-4 sm:text-xs sm:tracking-[0.14em] ${isActive ? 'border-[var(--color-gold)] bg-[rgba(212,175,55,0.15)] text-[var(--color-text)] shadow-[0_0_18px_rgba(212,175,55,0.2)]' : isComplete ? 'border-[var(--color-border)] bg-[rgba(0,0,0,0.2)] text-[var(--color-text)]' : 'border-[var(--color-border)] bg-transparent text-[var(--color-muted)]'}`}
               >
                 <span className="block text-[10px] text-[var(--color-gold)]">Step {index + 1}</span>
-                <span className="mt-1 block">{label}</span>
+                <span className="mt-1 block break-words leading-snug">{label}</span>
               </div>
             );
           })}
         </div>
 
         {step === 0 ? (
-          <div className="premium-surface-soft rounded-[1.4rem] p-6">
+          <div className="premium-surface-soft rounded-2xl p-4 sm:rounded-[1.4rem] sm:p-6">
             <h2 className="font-serif text-2xl text-[var(--color-text)]">Customer Info</h2>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <input className="input" placeholder="Full Name" value={formState.customerName} onChange={(event) => updateField('customerName', event.target.value)} />
@@ -227,7 +232,7 @@ export const CheckoutForm = ({
         ) : null}
 
         {step === 1 ? (
-          <div className="premium-surface-soft rounded-[1.4rem] p-6">
+          <div className="premium-surface-soft rounded-2xl p-4 sm:rounded-[1.4rem] sm:p-6">
             <h2 className="font-serif text-2xl text-[var(--color-text)]">Address</h2>
             <div className="mt-5 space-y-4">
               <textarea className="input min-h-24" placeholder="Shipping Address" value={formState.shippingAddress} onChange={(event) => updateField('shippingAddress', event.target.value)} />
@@ -251,12 +256,13 @@ export const CheckoutForm = ({
         {step === 4 ? <PaymentMethodSelector methods={paymentMethods} selected={selectedMethod} onSelect={setSelectedMethod} /> : null}
 
         {step === 5 ? (
-          <div className="premium-surface-deep rounded-[1.4rem] p-6">
+          <div className="premium-surface-deep rounded-2xl p-4 sm:rounded-[1.4rem] sm:p-6">
             <h2 className="font-serif text-2xl text-[var(--color-text)]">Review & Submit</h2>
             <div className="mt-4">
               <label className="text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Discount code</label>
               <input className="input mt-2" placeholder="Enter code" value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} />
               {pricing.appliedRule ? <p className="mt-2 text-xs text-[var(--color-sand)]">Applied: {pricing.appliedRule.name}</p> : null}
+              {discountCode.trim() && !pricing.appliedRule ? <p className="mt-2 text-xs text-red-300">No matching active discount code found.</p> : null}
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-4 text-sm text-[var(--color-muted)]">
@@ -289,7 +295,7 @@ export const CheckoutForm = ({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           {step === stepLabels.length - 1 ? (
             <p className="w-full text-xs text-[var(--color-muted)]">
               Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our{' '}

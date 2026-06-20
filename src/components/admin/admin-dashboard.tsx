@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { AgeGateRegistrant, COADocument, DiscountRule, ShippingMethod } from '@/lib/types';
 
 type DashboardProps = {
   dbEnabled: boolean;
   isClientMode: boolean;
-  categories: Array<{ slug: string; name: string }>;
   products: Array<{ id: string; name: string; slug: string; category: string; price: number; stockQuantity: number; isActive: boolean; variants?: Array<{ id: string; name: string; sku: string; price: number; stock: number; active: boolean; isDefault?: boolean; sortOrder?: number }> }>;
   faqs: Array<{ id: string; question: string; answer: string }>;
   legalPages: Array<{ id: string; slug: string; title: string; intro: string }>;
@@ -46,7 +46,58 @@ const sections: AdminSection[] = [
   'Settings',
 ];
 
-const statusOptions = ['pending', 'reviewing', 'approved', 'payment-sent', 'completed', 'cancelled'];
+const adminSectionStorageKey = 'peppers-admin-active-section';
+
+const isAdminSection = (value: string | null): value is AdminSection =>
+  sections.includes(value as AdminSection);
+
+const statusOptions = ['pending', 'reviewing', 'approved', 'payment-sent', 'completed', 'cancelled'] as const;
+type OrderStatusOption = (typeof statusOptions)[number];
+
+const statusLabels: Record<OrderStatusOption, string> = {
+  pending: 'Pending',
+  reviewing: 'Reviewing',
+  approved: 'Approved',
+  'payment-sent': 'Payment Sent',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+type SupportErrorBody = {
+  error?: string;
+  detail?: {
+    webhook_url?: string;
+    attempted_secret_count?: number;
+    attempted_secret_fingerprints?: string[];
+    mission_control?: {
+      provided_fingerprint?: string;
+      accepted_fingerprints?: string[];
+      accepted_secret_count?: number;
+    };
+  };
+};
+
+const formatSupportError = (body: SupportErrorBody) => {
+  const detail = body.detail;
+  if (!detail) return body.error || 'Support request failed.';
+
+  const parts = [body.error || 'Support request failed.'];
+  if (detail.webhook_url) parts.push(`Webhook: ${detail.webhook_url}`);
+  if (detail.attempted_secret_fingerprints?.length) {
+    parts.push(`Vercel sent fingerprint(s): ${detail.attempted_secret_fingerprints.join(', ')}`);
+  }
+  if (detail.mission_control?.accepted_fingerprints?.length) {
+    parts.push(`Mission Control accepts: ${detail.mission_control.accepted_fingerprints.join(', ')}`);
+  }
+  if (detail.mission_control?.provided_fingerprint) {
+    parts.push(`Mission Control received: ${detail.mission_control.provided_fingerprint}`);
+  }
+  if (detail.mission_control?.accepted_secret_count !== undefined) {
+    parts.push(`Mission Control accepted secret count: ${detail.mission_control.accepted_secret_count}`);
+  }
+
+  return parts.join(' | ');
+};
 
 const downloadCsv = (filename: string, lines: string[]) => {
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -58,16 +109,67 @@ const downloadCsv = (filename: string, lines: string[]) => {
   URL.revokeObjectURL(url);
 };
 
-export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, legalPages, orders, ageGateRegistrants, discountRules, coaDocuments, shippingMethods, initialSettings }: DashboardProps) => {
+type SupportFormState = {
+  pageUrl: string;
+  requesterName: string;
+  requesterEmail: string;
+  requestType: string;
+  priority: string;
+  summary: string;
+  details: string;
+  acknowledged: boolean;
+};
+
+const weakSupportText = new Set([
+  'bug',
+  'fix',
+  'help',
+  'issue',
+  'n/a',
+  'na',
+  'none',
+  'test',
+  'testing',
+  'todo',
+  'what should change?',
+]);
+
+const normalizeSupportText = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const hasUsefulSupportDetail = (value: string, minLength: number) => {
+  const normalized = normalizeSupportText(value);
+  return normalized.length >= minLength && !weakSupportText.has(normalized);
+};
+
+const supportRequestValidationMessage = (form: SupportFormState) => {
+  if (!form.pageUrl.trim()) {
+    return 'Add the page, section, or admin area where the issue appears.';
+  }
+
+  if (!hasUsefulSupportDetail(form.summary, 12)) {
+    return 'Add a specific short summary, like "Update checkout shipping text" or "Fix product image on shop page."';
+  }
+
+  if (!hasUsefulSupportDetail(form.details, 35)) {
+    return 'Add enough detail for the Web Helper: where it appears, what should change, and the expected result.';
+  }
+
+  return '';
+};
+
+export const AdminDashboard = ({ products, legalPages, orders, ageGateRegistrants, discountRules, coaDocuments, shippingMethods, initialSettings }: DashboardProps) => {
   const [active, setActive] = useState<AdminSection>('Dashboard');
+  const [hasLoadedActiveSection, setHasLoadedActiveSection] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [visibleDiscountRules, setVisibleDiscountRules] = useState(discountRules);
   const [registrantSearch, setRegistrantSearch] = useState('');
   const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
-  const [settingsSection, setSettingsSection] = useState<'contact' | 'payment' | 'legal' | 'branding' | 'store' | 'checkout'>('contact');
+  const [settingsSection, setSettingsSection] = useState<'store' | 'contact' | 'payment' | 'legal' | 'branding' | 'checkout'>('store');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [uploadingSetting, setUploadingSetting] = useState('');
   const [supportSending, setSupportSending] = useState(false);
   const [supportSentTicket, setSupportSentTicket] = useState('');
-  const [supportForm, setSupportForm] = useState({
+  const [supportForm, setSupportForm] = useState<SupportFormState>({
     pageUrl: '',
     requesterName: '',
     requesterEmail: '',
@@ -85,7 +187,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
     name: '',
     type: 'percent' as 'percent' | 'fixed',
     minQuantity: '1',
-    value: '0',
+    value: '10',
     code: '',
     active: true,
   });
@@ -110,17 +212,41 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
     active: true,
   });
 
+  useEffect(() => {
+    const savedSection = window.localStorage.getItem(adminSectionStorageKey);
+    if (isAdminSection(savedSection)) {
+      setActive(savedSection);
+    }
+    setHasLoadedActiveSection(true);
+  }, []);
+
+  useEffect(() => {
+    if (hasLoadedActiveSection) {
+      window.localStorage.setItem(adminSectionStorageKey, active);
+    }
+  }, [active, hasLoadedActiveSection]);
+
+  const refreshAdminSection = () => {
+    window.localStorage.setItem(adminSectionStorageKey, active);
+    window.location.reload();
+  };
+
   const submitJson = async (url: string, method: 'POST' | 'PATCH' | 'DELETE', payload?: Record<string, unknown>) => {
     const response = await fetch(url, {
       method,
       headers: payload ? { 'Content-Type': 'application/json' } : undefined,
       body: payload ? JSON.stringify(payload) : undefined,
     });
+    const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: 'Request failed.' }));
-      throw new Error(body.error || 'Request failed.');
+      const fieldErrors = typeof body.error === 'object' ? body.error.fieldErrors : undefined;
+      const firstFieldError = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
+      const formError = typeof body.error === 'object' ? body.error.formErrors?.[0] : undefined;
+      throw new Error(typeof body.error === 'string' ? body.error : firstFieldError ?? formError ?? 'Request failed.');
     }
+
+    return body as { data?: DiscountRule; warning?: string };
   };
 
   const filteredRegistrants = useMemo(() => {
@@ -132,8 +258,13 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
   }, [ageGateRegistrants, registrantSearch]);
 
   const onUpdateOrder = async (orderId: string, status: string) => {
-    await submitJson(`/api/admin/orders/${orderId}`, 'PATCH', { status });
-    setStatusMessage('Order status updated. Refresh to load latest records.');
+    try {
+      const result = await submitJson(`/api/admin/orders/${orderId}`, 'PATCH', { status });
+      setStatusMessage(result.warning ? `Order status updated. ${result.warning}` : 'Order status updated.');
+      window.setTimeout(refreshAdminSection, result.warning ? 2500 : 250);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to update order status.');
+    }
   };
 
   const onCreateVariant = async () => {
@@ -155,24 +286,53 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
     patch: { sortOrder?: number; isDefault?: boolean; active?: boolean },
   ) => {
     await submitJson(`/api/admin/variants/${variantId}`, 'PATCH', patch);
-    setStatusMessage('Variant updated. Refresh to load latest records.');
+    setStatusMessage('Variant updated.');
+    refreshAdminSection();
   };
 
   const onCreateDiscount = async () => {
-    await submitJson('/api/admin/discount-rules', 'POST', {
-      name: discountForm.name,
-      type: discountForm.type,
-      minQuantity: Number(discountForm.minQuantity),
-      value: Number(discountForm.value),
-      code: discountForm.code || undefined,
-      active: discountForm.active,
-    });
-    setStatusMessage('Discount rule saved. Refresh to load latest records.');
+    const code = discountForm.code.trim();
+    const fallbackName = code || (discountForm.type === 'percent' ? `${discountForm.value}% discount` : `$${discountForm.value} discount`);
+
+    try {
+      const result = await submitJson('/api/admin/discount-rules', 'POST', {
+        name: discountForm.name.trim() || fallbackName,
+        type: discountForm.type,
+        minQuantity: Number(discountForm.minQuantity),
+        value: Number(discountForm.value),
+        code: code || undefined,
+        active: discountForm.active,
+      });
+
+      if (result.data) {
+        setVisibleDiscountRules((prev) => [
+          result.data!,
+          ...prev.filter((rule) => rule.id !== result.data!.id),
+        ]);
+      }
+
+      setDiscountForm({
+        name: '',
+        type: 'percent',
+        minQuantity: '1',
+        value: '10',
+        code: '',
+        active: true,
+      });
+      setStatusMessage('Discount rule saved.');
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to save discount rule.');
+    }
   };
 
   const onDeleteDiscount = async (id: string) => {
-    await submitJson(`/api/admin/discount-rules/${id}`, 'DELETE');
-    setStatusMessage('Discount rule deleted. Refresh to load latest records.');
+    try {
+      await submitJson(`/api/admin/discount-rules/${id}`, 'DELETE');
+      setVisibleDiscountRules((prev) => prev.filter((rule) => rule.id !== id));
+      setStatusMessage('Discount rule deleted.');
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to delete discount rule.');
+    }
   };
 
   const onCreateCoa = async () => {
@@ -244,6 +404,12 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
   };
 
   const onSendSupportTicket = async () => {
+    const validationMessage = supportRequestValidationMessage(supportForm);
+    if (validationMessage) {
+      setStatusMessage(validationMessage);
+      return;
+    }
+
     if (!supportForm.acknowledged) {
       setStatusMessage('Confirm the support request approval note before sending.');
       return;
@@ -259,7 +425,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
       });
       const body = await response.json().catch(() => ({ error: 'Support request failed.' }));
       if (!response.ok) {
-        throw new Error(body.error || 'Support request failed.');
+        throw new Error(formatSupportError(body));
       }
 
       const ticketId = body.ticketId || body.id || 'support request';
@@ -279,6 +445,34 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
     }
   };
 
+  const onUploadSettingImage = async (key: string, file: File | null) => {
+    if (!file) return;
+
+    setUploadingSetting(key);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('renderStyle', 'plain');
+
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const body = await response.json().catch(() => ({ error: 'Upload failed.' })) as { url?: string; error?: string };
+
+      if (!response.ok || !body.url) {
+        throw new Error(body.error ?? 'Upload failed.');
+      }
+
+      setSetting(key, body.url);
+      setStatusMessage('Image uploaded. Save branding to publish it.');
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to upload image.');
+    } finally {
+      setUploadingSetting('');
+    }
+  };
+
   const exportRegistrants = () => {
     const lines = [
       'firstName,email,dob,verifiedAt,createdAt',
@@ -290,37 +484,28 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
   const activeProduct = products.find((product) => product.id === variantProductId);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[230px_1fr]">
-      <aside className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-3">
-        <p className="px-3 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-gold)]">Admin</p>
-        <nav className="space-y-1">
-          {sections.map((section) => (
-            <button
-              key={section}
-              onClick={() => setActive(section)}
-              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${active === section ? 'bg-[rgba(212,175,55,0.18)] text-[var(--color-ivory)]' : 'text-[var(--color-sand)] hover:bg-white/5'}`}
-            >
-              {section}
-            </button>
-          ))}
-        </nav>
+    <div className="mx-auto grid min-w-0 gap-5 xl:max-w-[1800px] lg:grid-cols-[220px_minmax(0,1fr)]">
+      <aside className="flex flex-col rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-3 lg:sticky lg:top-28 lg:max-h-[calc(100dvh-8rem)]">
+        <div>
+          <p className="px-3 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-gold)]">Admin</p>
+          <nav className="space-y-1">
+            {sections.map((section) => (
+              <button
+                key={section}
+                onClick={() => setActive(section)}
+                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${active === section ? 'bg-[rgba(212,175,55,0.18)] text-[var(--color-ivory)]' : 'text-[var(--color-sand)] hover:bg-white/5'}`}
+              >
+                {section}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <button className="mt-6 rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10 lg:mt-auto" onClick={onLogout}>
+          Logout
+        </button>
       </aside>
 
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-4">
-          <p className="text-sm text-[var(--color-sand)]">
-            {dbEnabled ? 'Database mode enabled.' : 'Seed fallback mode enabled.'} {isClientMode ? 'Client handoff mode enabled.' : ''}
-          </p>
-          <div className="flex items-center gap-2">
-            <a href="/admin/products" className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)] hover:bg-[var(--color-gold)]/10 transition">
-              Manage Products
-            </a>
-            <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={onLogout}>
-              Logout
-            </button>
-          </div>
-        </div>
-
+      <div className="min-w-0 space-y-4">
         {statusMessage ? <p className="text-sm text-[var(--color-sand)]">{statusMessage}</p> : null}
 
         {active === 'Dashboard' ? (
@@ -328,17 +513,51 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
             <StatCard label="Products" value={String(products.length)} />
             <StatCard label="Orders" value={String(orders.length)} />
             <StatCard label="Age Gate Registrants" value={String(ageGateRegistrants.length)} />
-            <StatCard label="Active Discounts" value={String(discountRules.filter((rule) => rule.active).length)} />
+            <StatCard label="Active Discounts" value={String(visibleDiscountRules.filter((rule) => rule.active).length)} />
           </section>
         ) : null}
 
         {active === 'Orders' ? (
-          <section className="rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
-            <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Orders</h2>
-            <div className="mt-4 space-y-3">
-              {orders.map((order) => (
-                <OrderRow key={order.id} order={order} onUpdate={onUpdateOrder} />
-              ))}
+          <section className="max-w-full rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-4 xl:p-5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Orders</h2>
+                <p className="mt-1 text-sm text-[var(--color-sand)]">Click an order card to open its workspace.</p>
+              </div>
+            </div>
+            <div className="mt-5">
+              <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3 min-[1500px]:grid-cols-6">
+                {statusOptions.map((status) => {
+                  const columnOrders = orders.filter((order) => order.status === status);
+
+                  return (
+                    <section
+                      key={status}
+                      className="min-h-[260px] min-w-0 rounded-xl border border-[var(--color-gold-soft)] bg-[rgba(255,255,255,0.03)] p-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-gold)]">
+                          {statusLabels[status]}
+                        </h3>
+                        <span className="rounded-full border border-[var(--color-gold-soft)] px-2 py-0.5 text-xs text-[var(--color-sand)]">
+                          {columnOrders.length}
+                        </span>
+                      </div>
+                      <div className="mt-3 max-h-[calc(100dvh-20rem)] space-y-3 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                        {columnOrders.length > 0 ? (
+                          columnOrders.map((order) => (
+                            <OrderCard key={order.id} order={order} onUpdate={onUpdateOrder} />
+                          ))
+                        ) : (
+                          <p className="rounded-lg border border-dashed border-[var(--color-border)] px-3 py-8 text-center text-xs text-[var(--color-muted)]">
+                            No orders
+                          </p>
+                        )}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
             </div>
           </section>
         ) : null}
@@ -407,18 +626,26 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
           <section className="space-y-4 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
             <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Discounts</h2>
             <div className="grid gap-3 md:grid-cols-3">
-              <input className="input" placeholder="Rule name" value={discountForm.name} onChange={(event) => setDiscountForm((prev) => ({ ...prev, name: event.target.value }))} />
+              <input className="input" placeholder="Rule name (optional)" value={discountForm.name} onChange={(event) => setDiscountForm((prev) => ({ ...prev, name: event.target.value }))} />
               <select className="input" value={discountForm.type} onChange={(event) => setDiscountForm((prev) => ({ ...prev, type: event.target.value as 'percent' | 'fixed' }))}>
                 <option value="percent">Percent</option>
                 <option value="fixed">Fixed</option>
               </select>
               <input className="input" placeholder="Code (optional)" value={discountForm.code} onChange={(event) => setDiscountForm((prev) => ({ ...prev, code: event.target.value }))} />
               <input className="input" placeholder="Min quantity" type="number" value={discountForm.minQuantity} onChange={(event) => setDiscountForm((prev) => ({ ...prev, minQuantity: event.target.value }))} />
-              <input className="input" placeholder="Value" type="number" value={discountForm.value} onChange={(event) => setDiscountForm((prev) => ({ ...prev, value: event.target.value }))} />
+              <input className="input" placeholder={discountForm.type === 'percent' ? 'Percent off' : 'Amount off'} type="number" min="0.01" step="0.01" value={discountForm.value} onChange={(event) => setDiscountForm((prev) => ({ ...prev, value: event.target.value }))} />
             </div>
+            <label className="flex items-center gap-2 text-sm text-[var(--color-sand)]">
+              <input
+                type="checkbox"
+                checked={discountForm.active}
+                onChange={(event) => setDiscountForm((prev) => ({ ...prev, active: event.target.checked }))}
+              />
+              Active
+            </label>
             <button className="btn-primary" onClick={onCreateDiscount}>Save Discount</button>
             <div className="space-y-2">
-              {discountRules.map((rule) => (
+              {visibleDiscountRules.map((rule) => (
                 <div key={rule.id} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3 text-sm text-[var(--color-sand)]">
                   <span>{rule.name} | {rule.type} | min {rule.minQuantity}</span>
                   <button className="text-xs text-red-300" onClick={() => onDeleteDiscount(rule.id)}>Delete</button>
@@ -650,13 +877,13 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
             <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Settings</h2>
             {/* Sub-section navigation */}
             <div className="flex flex-wrap gap-2 border-b border-[var(--color-gold-soft)] pb-3">
-              {(['contact', 'payment', 'legal', 'branding', 'store', 'checkout'] as const).map((sec) => (
+              {(['store', 'contact', 'payment', 'legal', 'branding', 'checkout'] as const).map((sec) => (
                 <button
                   key={sec}
                   onClick={() => setSettingsSection(sec)}
                   className={`rounded-full px-4 py-1.5 text-xs uppercase tracking-[0.14em] transition ${settingsSection === sec ? 'bg-[var(--color-gold)] text-[var(--color-ink)]' : 'border border-[var(--color-gold-soft)] text-[var(--color-sand)] hover:bg-white/5'}`}
                 >
-                  {sec === 'contact' ? 'Contact Info' : sec === 'payment' ? 'Payment Methods' : sec === 'legal' ? 'Legal Content' : sec === 'branding' ? 'Branding' : sec === 'store' ? 'Store Operations' : 'Checkout / Tax'}
+                  {sec === 'store' ? 'Catalog Display' : sec === 'contact' ? 'Contact Info' : sec === 'payment' ? 'Payment Methods' : sec === 'legal' ? 'Legal Content' : sec === 'branding' ? 'Branding' : 'Checkout / Tax'}
                 </button>
               ))}
             </div>
@@ -764,8 +991,25 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
                     <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Default OG / Social Image URL</label>
                     <input className="input" placeholder="/images/brand/og-image.png" value={settings['branding.ogImageUrl'] ?? ''} onChange={(e) => setSetting('branding.ogImageUrl', e.target.value)} />
                   </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Homepage Kit Image</label>
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <input className="input" placeholder="/images/kit/example_kit.jpg" value={settings['branding.homeKitImageUrl'] ?? ''} onChange={(e) => setSetting('branding.homeKitImageUrl', e.target.value)} />
+                      <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-[var(--color-gold)] px-5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10">
+                        {uploadingSetting === 'branding.homeKitImageUrl' ? 'Uploading...' : 'Upload'}
+                        <input
+                          className="sr-only"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          disabled={uploadingSetting === 'branding.homeKitImageUrl'}
+                          onChange={(e) => void onUploadSettingImage('branding.homeKitImageUrl', e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--color-sand)]">This image appears in the complimentary kit section on the homepage.</p>
+                  </div>
                 </div>
-                <button className="btn-primary" disabled={savingSettings} onClick={() => onSaveSettings({ 'branding.siteName': settings['branding.siteName'] ?? '', 'branding.logoUrl': settings['branding.logoUrl'] ?? '', 'branding.footerLogoUrl': settings['branding.footerLogoUrl'] ?? '', 'branding.ogImageUrl': settings['branding.ogImageUrl'] ?? '' })}>
+                <button className="btn-primary" disabled={savingSettings} onClick={() => onSaveSettings({ 'branding.siteName': settings['branding.siteName'] ?? '', 'branding.logoUrl': settings['branding.logoUrl'] ?? '', 'branding.footerLogoUrl': settings['branding.footerLogoUrl'] ?? '', 'branding.ogImageUrl': settings['branding.ogImageUrl'] ?? '', 'branding.homeKitImageUrl': settings['branding.homeKitImageUrl'] ?? '' })}>
                   {savingSettings ? 'Saving…' : 'Save Branding'}
                 </button>
               </div>
@@ -774,7 +1018,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
             {/* 5. Store Operations */}
             {settingsSection === 'store' ? (
               <div className="space-y-3">
-                <p className="text-xs text-[var(--color-sand)]">Operational configuration for fulfillment and order thresholds.</p>
+                <p className="text-xs text-[var(--color-sand)]">Control how the storefront catalog is displayed to customers.</p>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">Fulfillment Timeframe (e.g. 24-48 hours)</label>
@@ -789,8 +1033,30 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
                     <input className="input" type="number" placeholder="0" value={settings['store.freeShippingThreshold'] ?? ''} onChange={(e) => setSetting('store.freeShippingThreshold', e.target.value)} />
                   </div>
                 </div>
-                <button className="btn-primary" disabled={savingSettings} onClick={() => onSaveSettings({ 'store.fulfillmentHours': settings['store.fulfillmentHours'] ?? '', 'store.kitThreshold': settings['store.kitThreshold'] ?? '', 'store.freeShippingThreshold': settings['store.freeShippingThreshold'] ?? '' })}>
-                  {savingSettings ? 'Saving…' : 'Save Store Settings'}
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] px-4 py-3">
+                  <span>
+                    <span className="block font-medium text-[var(--color-ivory)]">Enable bottle mockups on storefront</span>
+                    <span className="text-xs text-[var(--color-sand)]">When off, product cards and product pages show the uploaded product image without the bottle wrapper.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 accent-[var(--color-gold)]"
+                    checked={settings['products.bottleMockupsEnabled'] === 'true'}
+                    onChange={(e) => setSetting('products.bottleMockupsEnabled', e.target.checked ? 'true' : 'false')}
+                  />
+                </label>
+                <button
+                  className="btn-primary"
+                  disabled={savingSettings}
+                  onClick={() => onSaveSettings({
+                    'store.fulfillmentHours': settings['store.fulfillmentHours'] ?? '',
+                    'store.kitThreshold': settings['store.kitThreshold'] ?? '',
+                    'store.freeShippingThreshold': settings['store.freeShippingThreshold'] ?? '',
+                    'store.disableCategories': settings['store.disableCategories'] ?? 'true',
+                    'products.bottleMockupsEnabled': settings['products.bottleMockupsEnabled'] ?? 'false',
+                  })}
+                >
+                  {savingSettings ? 'Saving...' : 'Save Catalog Settings'}
                 </button>
               </div>
             ) : null}
@@ -845,7 +1111,7 @@ const StatCard = ({ label, value }: { label: string; value: string }) => (
   </article>
 );
 
-const OrderRow = ({
+const OrderCard = ({
   order,
   onUpdate,
 }: {
@@ -853,22 +1119,32 @@ const OrderRow = ({
   onUpdate: (orderId: string, status: string) => Promise<void>;
 }) => {
   const [status, setStatus] = useState(order.status);
+  const detailHref = `/admin/orders/${encodeURIComponent(order.orderReference)}`;
 
   return (
-    <div className="rounded-lg border border-[var(--color-gold-soft)] p-3">
-      <p className="font-medium text-[var(--color-ivory)]">{order.orderReference}</p>
-      <p className="text-xs text-[var(--color-sand)]">{order.email}</p>
-      <p className="text-xs text-[var(--color-muted)]">{new Date(order.createdAt).toLocaleString()}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        <select className="input max-w-[190px]" value={status} onChange={(event) => setStatus(event.target.value)}>
+    <article className="rounded-lg border border-[var(--color-gold-soft)] bg-[rgba(20,8,10,0.82)] p-3">
+      <Link
+        href={detailHref}
+        className="-m-2 block rounded-md p-2 transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[var(--color-gold)]"
+        aria-label={`Open order workspace for ${order.orderReference}`}
+      >
+        <p className="break-words text-sm font-semibold text-[var(--color-ivory)]">{order.orderReference}</p>
+        <p className="mt-1 break-words text-xs text-[var(--color-sand)]">{order.email}</p>
+        <p className="mt-1 text-xs text-[var(--color-muted)]">{new Date(order.createdAt).toLocaleString()}</p>
+        <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-gold)]">
+          Open Order Workspace
+        </p>
+      </Link>
+      <div className="mt-3 grid gap-2">
+        <select className="input h-12 w-full min-w-0 truncate px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
           {statusOptions.map((option) => (
-            <option key={option} value={option}>{option}</option>
+            <option key={option} value={option}>{statusLabels[option]}</option>
           ))}
         </select>
-        <button className="rounded-full border border-[var(--color-gold)] px-4 py-2 text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]" onClick={() => onUpdate(order.id, status)}>
-          Update
+        <button className="min-h-10 rounded-full border border-[var(--color-gold)] px-4 py-2 text-[11px] uppercase tracking-[0.08em] text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10" onClick={() => void onUpdate(order.id, status)}>
+          Update Status
         </button>
       </div>
-    </div>
+    </article>
   );
 };

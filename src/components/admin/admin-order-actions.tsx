@@ -42,8 +42,8 @@ export const AdminOrderActions = ({ order }: { order: StoredOrderRequest }) => {
   };
 
   return (
-    <section className="rounded-xl border border-[var(--color-border)] bg-white p-5">
-      <h2 className="font-serif text-2xl text-[var(--color-text)]">Actions</h2>
+    <section className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+      <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Actions</h2>
       <div className="mt-4 space-y-3">
         <textarea
           className="input min-h-24"
@@ -93,7 +93,7 @@ export const AdminOrderActions = ({ order }: { order: StoredOrderRequest }) => {
         ))}
       </div>
 
-      {message ? <p className="mt-4 text-sm text-[var(--color-muted)]">{message}</p> : null}
+      {message ? <p className="mt-4 text-sm text-[var(--color-sand)]">{message}</p> : null}
     </section>
   );
 };

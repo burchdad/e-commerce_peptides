@@ -1,0 +1,5 @@
+ALTER TABLE "OrderRequest"
+  ADD COLUMN IF NOT EXISTS "discountCode" TEXT,
+  ADD COLUMN IF NOT EXISTS "discountAmount" DECIMAL(10, 2),
+  ADD COLUMN IF NOT EXISTS "shippingAmount" DECIMAL(10, 2),
+  ADD COLUMN IF NOT EXISTS "taxAmount" DECIMAL(10, 2);
