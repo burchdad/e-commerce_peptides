@@ -406,6 +406,7 @@ export const AdminDashboard = ({ dbEnabled, isClientMode, categories, products, 
         {active === 'Discounts' ? (
           <section className="space-y-4 rounded-2xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
             <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Discounts</h2>
+            <p className="text-sm text-[var(--color-sand)]">For percent discounts, enter whole numbers: 10 means 10%.</p>
             <div className="grid gap-3 md:grid-cols-3">
               <input className="input" placeholder="Rule name" value={discountForm.name} onChange={(event) => setDiscountForm((prev) => ({ ...prev, name: event.target.value }))} />
               <select className="input" value={discountForm.type} onChange={(event) => setDiscountForm((prev) => ({ ...prev, type: event.target.value as 'percent' | 'fixed' }))}>
