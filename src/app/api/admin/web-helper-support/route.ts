@@ -29,6 +29,17 @@ const envList = (key: string, fallback: string[]) => {
     .filter(Boolean);
 };
 
+const configuredWebhookSecrets = () => {
+  const secrets = [
+    process.env.GHOST_WEB_HELPER_WEBHOOK_SECRET,
+    process.env.GHOST_MISSION_CONTROL_WEBHOOK_SECRET,
+  ]
+    .map((value) => value?.trim() ?? '')
+    .filter(Boolean);
+
+  return Array.from(new Set(secrets));
+};
+
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -46,12 +57,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Support request acknowledgement is required.' }, { status: 400 });
   }
 
-  const webhookSecret = (
-    process.env.GHOST_WEB_HELPER_WEBHOOK_SECRET ||
-    process.env.GHOST_MISSION_CONTROL_WEBHOOK_SECRET ||
-    ''
-  ).trim();
-  if (!webhookSecret) {
+  const webhookSecrets = configuredWebhookSecrets();
+  if (!webhookSecrets.length) {
     return NextResponse.json({ error: 'Mission Control webhook secret is not configured.' }, { status: 500 });
   }
 
@@ -83,30 +90,47 @@ export async function POST(request: Request) {
     web_helper_id: envValue('GHOST_WEB_HELPER_ID', 'peppers-and-vibes-web-helper'),
   };
 
-  const response = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Ghost-Webhook-Secret': webhookSecret,
-    },
-    body: JSON.stringify(payload),
-  });
+  let response: Response | null = null;
+  let result: unknown = null;
 
-  const result = await response.json().catch(() => null);
+  for (const webhookSecret of webhookSecrets) {
+    response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Ghost-Webhook-Secret': webhookSecret,
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
+    result = await response.json().catch(() => null);
+
+    if (response.ok || response.status !== 401) {
+      break;
+    }
+  }
+
+  if (!response?.ok) {
+    const missionResult = result as { error?: string; detail?: string } | null;
     return NextResponse.json(
       {
-        error: result?.error ?? 'Mission Control did not accept the support request.',
-        detail: result?.detail,
+        error: missionResult?.error ?? 'Mission Control did not accept the support request.',
+        detail: missionResult?.detail,
       },
-      { status: response.status },
+      { status: response?.status ?? 502 },
     );
   }
 
+  const missionResult = result as {
+    ticketId?: string;
+    id?: string;
+    request?: { id?: string };
+    ticket?: { id?: string };
+  } | null;
+
   return NextResponse.json({
     success: true,
-    ticketId: result?.ticketId ?? result?.id ?? result?.request?.id ?? result?.ticket?.id,
-    missionControl: result,
+    ticketId: missionResult?.ticketId ?? missionResult?.id ?? missionResult?.request?.id ?? missionResult?.ticket?.id,
+    missionControl: missionResult,
   });
 }
