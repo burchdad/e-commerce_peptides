@@ -20,6 +20,15 @@ const envValue = (key: string, fallback: string) => {
   return value && value.length > 0 ? value : fallback;
 };
 
+const stripWrappingQuotes = (value: string) => {
+  const text = value.trim();
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    return text.slice(1, -1).trim();
+  }
+
+  return text;
+};
+
 const envList = (key: string, fallback: string[]) => {
   const value = process.env[key]?.trim();
   if (!value) return fallback;
@@ -35,13 +44,13 @@ const configuredWebhookSecrets = () => {
     process.env.GHOST_WEB_HELPER_WEBHOOK_SECRET,
     process.env.GHOST_MISSION_CONTROL_WEBHOOK_SECRET,
   ]
-    .map((value) => value?.trim() ?? '')
+    .map((value) => stripWrappingQuotes(value?.trim() ?? ''))
     .filter(Boolean);
 
   return Array.from(new Set(secrets));
 };
 
-const secretFingerprint = (value: string) => createHash('sha256').update(value).digest('hex').slice(0, 12);
+const secretFingerprint = (value: string) => createHash('sha256').update(stripWrappingQuotes(value)).digest('hex').slice(0, 12);
 
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
