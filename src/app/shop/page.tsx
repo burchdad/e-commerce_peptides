@@ -4,7 +4,7 @@ import { categories } from '@/lib/data/site';
 
 export default function ShopPage() {
   return (
-    <div>
+    <div data-mission-control-ticket="whr_1781918482218_5f91fa75af50">
       <h1 className="section-title">Shop</h1>
       <p className="mt-3 max-w-2xl text-[var(--color-muted)]">Explore active and upcoming research categories. GLP products are now available.</p>
       <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
