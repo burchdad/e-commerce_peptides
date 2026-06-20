@@ -12,10 +12,11 @@ export type CalculatorOutput = {
   dosesPerVial: number;
 };
 
-export const calculateReconstitution = ({ peptideStrengthMg, reconstitutionMl, desiredDoseMg, syringeUnits = 100 }: CalculatorInput): CalculatorOutput => {
+export const calculateReconstitution = ({ peptideStrengthMg, reconstitutionMl, desiredDoseMg }: CalculatorInput): CalculatorOutput => {
   const concentrationMgPerMl = peptideStrengthMg / reconstitutionMl;
   const doseVolumeMl = desiredDoseMg / concentrationMgPerMl;
-  const unitsForDose = doseVolumeMl * syringeUnits;
+  // Insulin syringe markings are still 100 units per mL; 50u/100u changes capacity, not dose math.
+  const unitsForDose = doseVolumeMl * 100;
   const dosesPerVial = desiredDoseMg > 0 ? peptideStrengthMg / desiredDoseMg : 0;
 
   return {

@@ -8,8 +8,11 @@ loadEnv({ path: '.env.local' });
 loadEnv();
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
+const isGenerateCommand = process.argv.some((arg) => arg === 'generate');
+const datasourceUrl =
+  databaseUrl || (isGenerateCommand ? 'postgresql://user:pass@localhost:5432/db' : undefined);
 
-if (!databaseUrl) {
+if (!datasourceUrl) {
   throw new Error(
     'DATABASE_URL is missing for Prisma CLI. Add it to .env.local or export it before running prisma commands.',
   );
@@ -22,6 +25,6 @@ export default defineConfig({
     seed: 'npm run db:seed',
   },
   datasource: {
-    url: databaseUrl,
+    url: datasourceUrl,
   },
 });

@@ -44,6 +44,15 @@ const productImages = (product: Product): string[] => {
   return [...new Set(all)];
 };
 
+const getStorefrontVariant = (product: Product) =>
+  product.variants?.find((variant) => variant.active && variant.isDefault) ??
+  product.variants?.find((variant) => variant.active);
+
+const getStorefrontPrice = (product: Product) => getStorefrontVariant(product)?.price ?? product.price;
+
+const getStorefrontCompareAtPrice = (product: Product) =>
+  getStorefrontVariant(product)?.compareAtPrice ?? product.compareAtPrice;
+
 const shouldSkipBottleMockup = (categorySlug: string, name = '') => {
   const normalizedName = name.toLowerCase();
   return categorySlug === 'accessories' || normalizedName.includes('kit');
@@ -66,14 +75,41 @@ const emptyForm = (defaultCategory: string): FormState => ({
   images: [],
 });
 
+type ApiErrorPayload = {
+  error?: string | { fieldErrors?: Record<string, string[]>; formErrors?: string[] };
+};
+
+const parseOptionalMoney = (value: string) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+const getApiErrorMessage = (payload: ApiErrorPayload, fallback: string) => {
+  if (typeof payload.error === 'string') return payload.error;
+
+  const fieldErrors = payload.error?.fieldErrors;
+  if (fieldErrors) {
+    const firstField = Object.entries(fieldErrors).find(([, messages]) => messages.length > 0);
+    if (firstField) {
+      const [field, messages] = firstField;
+      return `${field}: ${messages[0]}`;
+    }
+  }
+
+  const formError = payload.error?.formErrors?.[0];
+  return formError ?? fallback;
+};
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export const AdminProductsPage = ({
   initialProducts,
   categories,
+  bottleMockupsEnabled,
 }: {
   initialProducts: Product[];
   categories: CategoryOption[];
+  bottleMockupsEnabled: boolean;
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [search, setSearch] = useState('');
@@ -122,6 +158,9 @@ export const AdminProductsPage = ({
   };
 
   const openEdit = (product: Product) => {
+    const storefrontPrice = getStorefrontPrice(product);
+    const storefrontCompareAtPrice = getStorefrontCompareAtPrice(product);
+
     setForm({
       name: product.name,
       subtitle: product.subtitle,
@@ -129,8 +168,8 @@ export const AdminProductsPage = ({
       sku: product.sku,
       shortDescription: product.shortDescription,
       longDescription: product.longDescription,
-      price: String(product.price),
-      compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : '',
+      price: String(storefrontPrice),
+      compareAtPrice: storefrontCompareAtPrice ? String(storefrontCompareAtPrice) : '',
       stockQuantity: String(product.stockQuantity),
       categorySlug: product.category,
       badge: product.badge ?? '',
@@ -166,7 +205,10 @@ export const AdminProductsPage = ({
     setUploadingImage(true);
     try {
       const uploaded: string[] = [];
-      const shouldRenderBottle = wrapProductUploads && !shouldSkipBottleMockup(form.categorySlug, form.name);
+      const shouldRenderBottle =
+        bottleMockupsEnabled &&
+        wrapProductUploads &&
+        !shouldSkipBottleMockup(form.categorySlug, form.name);
       for (const file of Array.from(files)) {
         const fd = new FormData();
         fd.append('file', file);
@@ -208,7 +250,7 @@ export const AdminProductsPage = ({
         shortDescription: form.shortDescription,
         longDescription: form.longDescription,
         price: parseFloat(form.price),
-        compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
+        compareAtPrice: parseOptionalMoney(form.compareAtPrice),
         stockQuantity: parseInt(form.stockQuantity, 10),
         categorySlug: form.categorySlug,
         badge: form.badge || null,
@@ -223,8 +265,8 @@ export const AdminProductsPage = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const json = await res.json() as { success?: boolean; data?: Product; error?: string };
-        if (!res.ok) throw new Error(json.error ?? 'Failed to create product.');
+        const json = await res.json() as ({ success?: boolean; data?: Product } & ApiErrorPayload);
+        if (!res.ok) throw new Error(getApiErrorMessage(json, 'Failed to create product.'));
         // Refetch to get the full object with id
         const refreshed = await fetch('/api/admin/products');
         const rJson = await refreshed.json() as { data: Product[] };
@@ -236,8 +278,8 @@ export const AdminProductsPage = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const json = await res.json() as { success?: boolean; data?: Product; error?: string };
-        if (!res.ok) throw new Error(json.error ?? 'Failed to update product.');
+        const json = await res.json() as ({ success?: boolean; data?: Product } & ApiErrorPayload);
+        if (!res.ok) throw new Error(getApiErrorMessage(json, 'Failed to update product.'));
         // Optimistic update using returned product or patch
         if (json.data) {
           setProducts((prev) => prev.map((p) => (p.id === editingProduct.id ? json.data! : p)));
@@ -354,7 +396,6 @@ export const AdminProductsPage = ({
           mode={modal}
           form={form}
           setForm={setForm}
-          categories={categories}
           newImageUrl={newImageUrl}
           setNewImageUrl={setNewImageUrl}
           fileInputRef={fileInputRef}
@@ -362,6 +403,7 @@ export const AdminProductsPage = ({
           isSubmitting={isSubmitting}
           wrapProductUploads={wrapProductUploads}
           setWrapProductUploads={setWrapProductUploads}
+          bottleMockupsEnabled={bottleMockupsEnabled}
           onAddImageUrl={addImageUrl}
           onRemoveImage={removeImage}
           onFileUpload={handleFileUpload}
@@ -410,6 +452,8 @@ const ProductRow = ({
   onDelete: (p: Product) => void;
 }) => {
   const thumb = product.images.primary;
+  const storefrontVariant = getStorefrontVariant(product);
+  const storefrontPrice = getStorefrontPrice(product);
 
   return (
     <tr className="border-b border-[var(--color-gold-soft)]/30 last:border-0 hover:bg-white/5 transition">
@@ -425,10 +469,16 @@ const ProductRow = ({
       </td>
       <td className="py-3 px-3">
         <p className="font-medium text-[var(--color-ivory)]">{product.name}</p>
-        <p className="text-xs text-[var(--color-sand)]">{product.category}</p>
       </td>
       <td className="py-3 px-3 hidden md:table-cell text-[var(--color-sand)]">{product.sku}</td>
-      <td className="py-3 px-3 text-[var(--color-ivory)]">{currency(product.price)}</td>
+      <td className="py-3 px-3 text-[var(--color-ivory)]">
+        {currency(storefrontPrice)}
+        {storefrontVariant ? (
+          <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-sand)]">
+            {storefrontVariant.name}
+          </p>
+        ) : null}
+      </td>
       <td className="py-3 px-3 hidden sm:table-cell text-[var(--color-sand)]">{product.stockQuantity}</td>
       <td className="py-3 px-3">
         <span
@@ -467,7 +517,6 @@ const ProductModal = ({
   mode,
   form,
   setForm,
-  categories,
   newImageUrl,
   setNewImageUrl,
   fileInputRef,
@@ -475,6 +524,7 @@ const ProductModal = ({
   isSubmitting,
   wrapProductUploads,
   setWrapProductUploads,
+  bottleMockupsEnabled,
   onAddImageUrl,
   onRemoveImage,
   onFileUpload,
@@ -484,7 +534,6 @@ const ProductModal = ({
   mode: 'create' | 'edit';
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
-  categories: CategoryOption[];
   newImageUrl: string;
   setNewImageUrl: (v: string) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -492,6 +541,7 @@ const ProductModal = ({
   isSubmitting: boolean;
   wrapProductUploads: boolean;
   setWrapProductUploads: React.Dispatch<React.SetStateAction<boolean>>;
+  bottleMockupsEnabled: boolean;
   onAddImageUrl: () => void;
   onRemoveImage: (i: number) => void;
   onFileUpload: (files: FileList | null) => void;
@@ -517,23 +567,23 @@ const ProductModal = ({
   };
 
   const [dragOver, setDragOver] = useState(false);
-  const bottleMockupUnavailable = shouldSkipBottleMockup(form.categorySlug, form.name);
+  const bottleMockupUnavailable = !bottleMockupsEnabled || shouldSkipBottleMockup(form.categorySlug, form.name);
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center bg-black/70 p-4 pt-12 overflow-y-auto"
+      className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden bg-black/70 p-3 sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-2xl rounded-[1.6rem] border border-[var(--color-gold-soft)] bg-[var(--color-ink)] p-6 md:p-8 shadow-2xl">
+      <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[1.6rem] border border-[var(--color-gold-soft)] bg-[var(--color-ink)] shadow-2xl sm:max-h-[calc(100dvh-2rem)]">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-gold-soft)]/40 px-5 py-4 md:px-8">
           <h2 className="font-serif text-2xl text-[var(--color-ivory)]">
             {mode === 'create' ? 'New Product' : `Edit: ${form.name || '…'}`}
           </h2>
           <button onClick={onClose} className="text-[var(--color-sand)] hover:text-[var(--color-ivory)] text-xl leading-none">×</button>
         </div>
 
-        <div className="space-y-5">
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-8">
           {/* Basic info */}
           <fieldset className="space-y-3">
             <legend className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold)] mb-3">Basic Info</legend>
@@ -597,33 +647,13 @@ const ProductModal = ({
               </div>
               <div>
                 <label className="label">Compare-at Price</label>
-                <input className="input" type="number" step="0.01" min="0" value={form.compareAtPrice} onChange={field('compareAtPrice')} placeholder="199.00" />
+                <input className="input" type="number" step="0.01" min="0" value={form.compareAtPrice} onChange={field('compareAtPrice')} placeholder="0" />
               </div>
               <div>
                 <label className="label">Stock Quantity</label>
                 <input className="input" type="number" min="0" value={form.stockQuantity} onChange={field('stockQuantity')} />
               </div>
             </div>
-          </fieldset>
-
-          {/* Category */}
-          <fieldset>
-            <legend className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold)] mb-3">Category</legend>
-            <select
-              className="input"
-              value={form.categorySlug}
-              onChange={(e) => {
-                const nextCategory = e.target.value;
-                setForm((prev) => ({ ...prev, categorySlug: nextCategory }));
-                if (shouldSkipBottleMockup(nextCategory, form.name)) {
-                  setWrapProductUploads(false);
-                }
-              }}
-            >
-              {categories.map((c) => (
-                <option key={c.slug} value={c.slug}>{c.name}</option>
-              ))}
-            </select>
           </fieldset>
 
           {/* Settings */}
@@ -664,9 +694,15 @@ const ProductModal = ({
                 disabled={bottleMockupUnavailable}
                 onChange={(e) => setWrapProductUploads(e.target.checked)}
               />
-              Auto-generate bottle mockup on upload (products only)
+              Generate bottle mockup on upload
             </label>
-            {bottleMockupUnavailable ? (
+            {!bottleMockupUnavailable && !wrapProductUploads ? (
+              <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup generation is currently disabled for this upload.</p>
+            ) : null}
+            {!bottleMockupsEnabled ? (
+              <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup generation is disabled in Admin Settings.</p>
+            ) : null}
+            {bottleMockupsEnabled && bottleMockupUnavailable ? (
               <p className="text-[11px] text-[var(--color-sand)]">Bottle mockup disabled for accessories or kit-style product images.</p>
             ) : null}
 
@@ -748,7 +784,7 @@ const ProductModal = ({
         </div>
 
         {/* Footer actions */}
-        <div className="mt-8 flex justify-end gap-3">
+        <div className="flex shrink-0 justify-end gap-3 border-t border-[var(--color-gold-soft)]/40 px-5 py-4 md:px-8">
           <button
             onClick={onClose}
             className="rounded-xl border border-[var(--color-gold-soft)] px-5 py-2.5 text-sm text-[var(--color-sand)] hover:text-[var(--color-ivory)] transition"

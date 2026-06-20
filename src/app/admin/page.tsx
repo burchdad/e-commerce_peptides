@@ -1,10 +1,8 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { isAdminAuthenticated } from '@/lib/auth/admin';
 import { businessConfig } from '@/lib/config/business-config';
-import { categories } from '@/lib/data/site';
 import { hasDatabaseUrl } from '@/lib/db';
 import {
   getAdminAgeGateRegistrants,
@@ -41,16 +39,16 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="section-title">Admin Dashboard</h1>
-      <p className="max-w-2xl text-[var(--color-sand)]">
-        Manage catalog, legal content, and orders through a configurable admin workflow.
-      </p>
-      <div>
-        <Link href="/admin/orders" className="btn-secondary">Open Orders Workspace</Link>
+    <div className="relative left-1/2 w-screen -translate-x-1/2 space-y-5 px-4 sm:px-6 xl:px-8">
+      <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="section-title">Admin Dashboard</h1>
+          <p className="mt-2 max-w-2xl text-[var(--color-sand)]">
+            Manage catalog, legal content, and orders through a configurable admin workflow.
+          </p>
+        </div>
       </div>
       <AdminDashboard
-        categories={categories.map((category) => ({ slug: category.slug, name: category.name }))}
         ageGateRegistrants={ageGateRegistrants}
         discountRules={discountRules}
         coaDocuments={coaDocuments}

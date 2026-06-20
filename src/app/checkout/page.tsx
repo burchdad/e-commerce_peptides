@@ -4,6 +4,8 @@ import { getAdminDiscountRules, getAdminShippingMethods } from '@/lib/services/a
 import { getAllSettings } from '@/lib/services/settings';
 import { fetchAllProducts } from '@/lib/utils/catalog';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CheckoutPage() {
   const [catalog, discountRules, allShippingMethods, settings] = await Promise.all([
     fetchAllProducts(),

@@ -5,7 +5,10 @@ import { ProductDetailClient } from '@/components/commerce/product-detail-client
 import { DisclaimerNotice } from '@/components/ui/disclaimer-notice';
 import { siteConfig } from '@/lib/config/site-config';
 import { getPublicCoadocuments } from '@/lib/services/admin-data';
+import { getAllSettings } from '@/lib/services/settings';
 import { getProductBySlug } from '@/lib/utils/catalog';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -20,15 +23,19 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
-  const coas = await getPublicCoadocuments(product.id);
+  const [coas, settings] = await Promise.all([getPublicCoadocuments(product.id), getAllSettings()]);
+  const bottleMockupsEnabled = settings['products.bottleMockupsEnabled'] === 'true';
 
   return (
     <div className="space-y-10">
-      <ProductDetailClient product={product} />
+      <ProductDetailClient product={product} bottleMockupsEnabled={bottleMockupsEnabled} />
 
       <section className="grid gap-6 md:grid-cols-2">
         <article className="premium-surface rounded-2xl p-6">
           <h2 className="font-serif text-2xl text-[var(--color-text)]">Product Details</h2>
+          {product.longDescription ? (
+            <p className="mt-4 whitespace-pre-line text-sm leading-6 text-[var(--color-muted)]">{product.longDescription}</p>
+          ) : null}
           <ul className="mt-4 space-y-2 text-sm text-[var(--color-muted)]">
             {product.attributes.map((attribute) => (
               <li key={attribute.label} className="flex justify-between border-b border-[var(--color-border)] pb-2">

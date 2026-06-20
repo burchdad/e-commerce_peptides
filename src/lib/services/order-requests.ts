@@ -35,6 +35,21 @@ type WorkflowMetadata = {
 const WORKFLOW_KEY = '__workflow';
 const FOLLOW_UP_HOURS_RAW = Number(process.env.ORDER_FOLLOWUP_HOURS ?? '24');
 const FOLLOW_UP_HOURS = Number.isFinite(FOLLOW_UP_HOURS_RAW) && FOLLOW_UP_HOURS_RAW > 0 ? FOLLOW_UP_HOURS_RAW : 24;
+const requiresPersistentOrders = process.env.NODE_ENV === 'production';
+let pricingColumnsReady = false;
+
+const ensureOrderRequestPricingColumns = async () => {
+  if (!hasDatabaseUrl || pricingColumnsReady) return;
+
+  await prisma!.$executeRawUnsafe(`
+    ALTER TABLE "OrderRequest"
+      ADD COLUMN IF NOT EXISTS "discountCode" TEXT,
+      ADD COLUMN IF NOT EXISTS "discountAmount" DECIMAL(10, 2),
+      ADD COLUMN IF NOT EXISTS "shippingAmount" DECIMAL(10, 2),
+      ADD COLUMN IF NOT EXISTS "taxAmount" DECIMAL(10, 2);
+  `);
+  pricingColumnsReady = true;
+};
 
 const buildOrderReference = () => {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -368,8 +383,13 @@ export const createOrderRequestRecord = async (order: OrderRequest) => {
   const now = new Date().toISOString();
   const workflow = getDefaultWorkflow(now);
 
+  if (requiresPersistentOrders && !hasDatabaseUrl) {
+    throw new Error('Order persistence is not configured.');
+  }
+
   if (hasDatabaseUrl) {
     try {
+      await ensureOrderRequestPricingColumns();
       const created = await prisma!.orderRequest.create({
         data: {
           orderReference,
@@ -409,6 +429,9 @@ export const createOrderRequestRecord = async (order: OrderRequest) => {
 
       return cacheOrder(toStoredOrderFromDb(created));
     } catch (error) {
+      if (requiresPersistentOrders) {
+        throw error;
+      }
       console.warn('[order-request] database persistence failed, using in-memory fallback', error);
     }
   }
@@ -443,6 +466,7 @@ export const getOrderRequestRecord = async (orderReference: string) => {
 
   if (!hasDatabaseUrl) return null;
 
+  await ensureOrderRequestPricingColumns();
   const row = await prisma!.orderRequest.findFirst({
     where: { OR: [{ orderReference }, { id: orderReference }] },
     include: { items: true },
@@ -461,6 +485,7 @@ export const listOrderRequestRecords = async (filters?: {
   let records: StoredOrderRequest[];
 
   if (hasDatabaseUrl) {
+    await ensureOrderRequestPricingColumns();
     const rows = await prisma!.orderRequest.findMany({ include: { items: true }, orderBy: { createdAt: 'desc' } });
     records = rows.map((row) => cacheOrder(toStoredOrderFromDb(row)));
   } else {

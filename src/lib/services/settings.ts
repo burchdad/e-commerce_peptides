@@ -13,12 +13,15 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   'store.fulfillmentHours': '24-48',
   'store.kitThreshold': '1',
   'store.freeShippingThreshold': '',
+  'store.disableCategories': 'true',
+  'products.bottleMockupsEnabled': 'false',
   'checkout.taxEnabled': 'false',
   'checkout.taxRate': '0',
   'branding.siteName': 'Peppers & Vibes',
   'branding.logoUrl': '',
   'branding.footerLogoUrl': '',
   'branding.ogImageUrl': '',
+  'branding.homeKitImageUrl': '/images/kit/example_kit.jpg',
 };
 
 export const getSetting = async (key: string): Promise<string> => {

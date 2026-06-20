@@ -47,3 +47,6 @@ export const resolveVariantForProduct = (
 };
 
 export const requiresVariantSelection = (product: Product): boolean => getActiveVariants(product).length > 1;
+
+export const getVariantDisplayImage = (product: Product, variant?: ProductVariant): string =>
+  variant?.imageOverride || product.images.primary;
