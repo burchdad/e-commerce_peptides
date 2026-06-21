@@ -52,6 +52,14 @@ const schema = z.object({
 
 const money = (value: number) => Math.round(value * 100) / 100;
 
+const normalizeDiscountCode = (code?: string) => code?.trim().replace(/\s+/g, ' ') || undefined;
+
+const containsMultipleDiscountCodes = (code?: string) => {
+  const normalized = normalizeDiscountCode(code);
+  if (!normalized) return false;
+  return /[,;|+&]/.test(normalized) || normalized.split(' ').length > 1;
+};
+
 const buildServerOrder = async (data: z.infer<typeof schema>): Promise<OrderRequest> => {
   const [catalog, discountRules, shippingMethods, settings] = await Promise.all([
     fetchAllProducts(),
@@ -63,6 +71,11 @@ const buildServerOrder = async (data: z.infer<typeof schema>): Promise<OrderRequ
   const paymentMethod = paymentMethods.find((method) => method.id === data.paymentMethodId && method.enabled);
   if (!paymentMethod) {
     throw new Error('Please select a valid payment method.');
+  }
+
+  const discountCode = normalizeDiscountCode(data.discountCode);
+  if (containsMultipleDiscountCodes(discountCode)) {
+    throw new Error('Only one discount code can be used per order.');
   }
 
   const resolvedItems: ResolvedCartItem[] = data.items.map((item) => {
@@ -99,8 +112,11 @@ const buildServerOrder = async (data: z.infer<typeof schema>): Promise<OrderRequ
   const discountPricing = computeDiscount({
     items: resolvedItems,
     rules: discountRules,
-    code: data.discountCode,
+    code: discountCode,
   });
+  if (discountCode && !discountPricing.appliedRule) {
+    throw new Error('Please enter a valid active discount code or leave the discount field blank.');
+  }
   const shippingAmount = selectedShippingMethod ? selectedShippingMethod.price : 0;
   const taxEnabled = settings['checkout.taxEnabled'] === 'true';
   const taxRate = Number(settings['checkout.taxRate'] ?? '0') || 0;
@@ -122,7 +138,7 @@ const buildServerOrder = async (data: z.infer<typeof schema>): Promise<OrderRequ
     shippingMethodLabel: selectedShippingMethod
       ? `${selectedShippingMethod.name} (${selectedShippingMethod.carrier})`
       : undefined,
-    discountCode: data.discountCode || undefined,
+    discountCode: discountPricing.appliedRule?.code,
     discountAmount: money(discountPricing.discountAmount),
     shippingAmount: money(shippingAmount),
     taxAmount: money(taxAmount),
@@ -150,12 +166,28 @@ export async function POST(request: Request) {
   try {
     const serverOrder = await buildServerOrder(parsed.data);
     const order = await createOrderRequestRecord(serverOrder);
-    await Promise.all([sendOrderReceivedEmail(order), sendAdminNotification(order, 'order-received')]);
+    const emailWarnings: string[] = [];
+    await Promise.all([
+      sendOrderReceivedEmail(order).catch((error) => {
+        emailWarnings.push(error instanceof Error ? error.message : 'Customer email delivery failed.');
+      }),
+      sendAdminNotification(order, 'order-received').catch((error) => {
+        emailWarnings.push(error instanceof Error ? error.message : 'Admin email delivery failed.');
+      }),
+    ]);
+
+    if (emailWarnings.length > 0) {
+      console.error('[order-request] email delivery warning', {
+        orderReference: order.orderReference,
+        warnings: emailWarnings,
+      });
+    }
 
     return NextResponse.json(
       {
         success: true,
         orderReference: order.orderReference,
+        warning: emailWarnings.length > 0 ? emailWarnings.join(' ') : undefined,
       },
       { status: 200 },
     );

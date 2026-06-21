@@ -1,6 +1,7 @@
 import type { StoredOrderRequest } from '@/lib/types';
 import { siteConfig } from '@/lib/config/site-config';
 import { currency } from '@/lib/utils/format';
+import { getOrderTotals } from '@/lib/utils/order-totals';
 
 const logTemplate = (event: string, payload: Record<string, unknown>) => {
   console.info(`[email-stub:${event}]`, payload);
@@ -167,9 +168,36 @@ const buildItemsTable = (order: StoredOrderRequest) => {
   `;
 };
 
-const getOrderTotal = (order: StoredOrderRequest) => {
-  const itemTotal = order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  return itemTotal - (order.discountAmount ?? 0) + (order.shippingAmount ?? 0) + (order.taxAmount ?? 0);
+const buildTotalsTable = (order: StoredOrderRequest) => {
+  const totals = getOrderTotals(order);
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 18px;border-collapse:collapse;">
+      <tbody>
+        <tr>
+          <td style="padding:6px 0;color:#6b5f45;">Items subtotal</td>
+          <td align="right" style="padding:6px 0;color:#1a1a1a;">${currency(totals.subtotal)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#6b5f45;">${escapeHtml(order.discountCode ? `Discount (${order.discountCode})` : 'Discount')}</td>
+          <td align="right" style="padding:6px 0;color:#166534;">${totals.discountAmount > 0 ? `-${currency(totals.discountAmount)}` : currency(0)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#6b5f45;">${escapeHtml(order.shippingMethodLabel ? `Shipping (${order.shippingMethodLabel})` : 'Shipping')}</td>
+          <td align="right" style="padding:6px 0;color:#1a1a1a;">${totals.shippingAmount > 0 ? currency(totals.shippingAmount) : 'Free / not charged'}</td>
+        </tr>
+        ${totals.taxAmount > 0 ? `
+        <tr>
+          <td style="padding:6px 0;color:#6b5f45;">Sales tax</td>
+          <td align="right" style="padding:6px 0;color:#1a1a1a;">${currency(totals.taxAmount)}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td style="padding:10px 0 0;border-top:1px solid #e6d7a7;color:#7a0c12;font-weight:bold;">Grand total</td>
+          <td align="right" style="padding:10px 0 0;border-top:1px solid #e6d7a7;color:#7a0c12;font-weight:bold;">${currency(totals.grandTotal)}</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
 };
 
 export const sendOrderReceivedEmail = async (order: StoredOrderRequest) => {
@@ -184,6 +212,7 @@ export const sendOrderReceivedEmail = async (order: StoredOrderRequest) => {
       body: `
         <p>Your order request <strong>${escapeHtml(order.orderReference)}</strong> has been received and is pending review.</p>
         ${buildItemsTable(order)}
+        ${buildTotalsTable(order)}
         <p>We will follow up with payment instructions after review.</p>
       `,
     }),
@@ -211,7 +240,7 @@ export const sendOrderApprovedEmail = async (order: StoredOrderRequest) => {
 
 export const sendPaymentInstructionsEmail = async (order: StoredOrderRequest) => {
   const orderBlock = getOrderEmailBlock(order);
-  const total = getOrderTotal(order);
+  const totals = getOrderTotals(order);
   const subject = `Invoice and payment instructions for ${order.orderReference}`;
   const instructions = order.paymentInstructions?.trim() || 'Payment instructions will be provided by our team.';
   const paymentLinkHtml = order.paymentLink
@@ -223,7 +252,12 @@ export const sendPaymentInstructionsEmail = async (order: StoredOrderRequest) =>
     subject,
     text: [
       `Order ${order.orderReference} is ready for payment.`,
-      `Total: ${currency(total)}`,
+      `Items subtotal: ${currency(totals.subtotal)}`,
+      order.discountCode ? `Discount code: ${order.discountCode}` : '',
+      `Discount: -${currency(totals.discountAmount)}`,
+      `Shipping: ${order.shippingMethodLabel ?? 'Not captured'} ${totals.shippingAmount > 0 ? currency(totals.shippingAmount) : 'Free / not charged'}`,
+      totals.taxAmount > 0 ? `Sales tax: ${currency(totals.taxAmount)}` : '',
+      `Grand total: ${currency(totals.grandTotal)}`,
       `Payment preference: ${order.paymentMethodLabel}`,
       '',
       instructions,
@@ -235,7 +269,8 @@ export const sendPaymentInstructionsEmail = async (order: StoredOrderRequest) =>
       body: `
         <p>Order <strong>${escapeHtml(order.orderReference)}</strong> is approved and ready for payment.</p>
         ${buildItemsTable(order)}
-        <p style="font-size:18px;"><strong>Total due: ${currency(total)}</strong></p>
+        ${buildTotalsTable(order)}
+        <p style="font-size:18px;"><strong>Total due: ${currency(totals.grandTotal)}</strong></p>
         <p><strong>Payment preference:</strong> ${escapeHtml(order.paymentMethodLabel)}</p>
         <div style="margin:18px 0;padding:16px;border:1px solid #e6d7a7;border-radius:12px;background:#fffaf0;">
           <h2 style="margin:0 0 8px;font-size:16px;color:#7a0c12;">Payment instructions</h2>
@@ -265,10 +300,23 @@ export const sendOrderCompletedEmail = async (order: StoredOrderRequest) => {
 };
 
 export const sendAdminNotification = async (order: StoredOrderRequest, event: string) => {
+  const totals = getOrderTotals(order);
   await sendEmail('admin-notification', {
     to: adminEmail,
     subject: `${siteConfig.brandName} admin notice: ${event}`,
-    text: `Order ${order.orderReference}\nCustomer: ${order.customerName}\nStatus: ${order.status}\nPayment preference: ${order.paymentMethodLabel}`,
+    text: [
+      `Order ${order.orderReference}`,
+      `Customer: ${order.customerName}`,
+      `Status: ${order.status}`,
+      `Payment preference: ${order.paymentMethodLabel}`,
+      `Shipping method: ${order.shippingMethodLabel ?? 'Not captured'}`,
+      `Items subtotal: ${currency(totals.subtotal)}`,
+      order.discountCode ? `Discount code: ${order.discountCode}` : '',
+      `Discount amount: -${currency(totals.discountAmount)}`,
+      `Shipping amount: ${totals.shippingAmount > 0 ? currency(totals.shippingAmount) : 'Free / not charged'}`,
+      totals.taxAmount > 0 ? `Sales tax: ${currency(totals.taxAmount)}` : '',
+      `Grand total: ${currency(totals.grandTotal)}`,
+    ].filter(Boolean).join('\n'),
     html: buildEmailShell({
       preview: `${event} for ${order.orderReference}`,
       heading: 'Admin Order Notice',
@@ -278,6 +326,9 @@ export const sendAdminNotification = async (order: StoredOrderRequest, event: st
         <p><strong>Customer:</strong> ${escapeHtml(order.customerName)}</p>
         <p><strong>Status:</strong> ${escapeHtml(order.status)}</p>
         <p><strong>Payment preference:</strong> ${escapeHtml(order.paymentMethodLabel)}</p>
+        <p><strong>Shipping method:</strong> ${escapeHtml(order.shippingMethodLabel ?? 'Not captured')}</p>
+        ${buildItemsTable(order)}
+        ${buildTotalsTable(order)}
       `,
     }),
     replyTo: order.email,

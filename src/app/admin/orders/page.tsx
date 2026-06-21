@@ -5,6 +5,7 @@ import { isAdminAuthenticated } from '@/lib/auth/admin';
 import { getOrderStats, listOrderRequestRecords } from '@/lib/services/order-requests';
 import type { OrderWorkflowStatus } from '@/lib/types';
 import { currency } from '@/lib/utils/format';
+import { getOrderTotals } from '@/lib/utils/order-totals';
 
 const statusOptions: Array<{ value: 'all' | OrderWorkflowStatus; label: string }> = [
   { value: 'all', label: 'All' },
@@ -93,7 +94,7 @@ export default async function AdminOrdersPage({
             </thead>
             <tbody>
               {orders.map((order) => {
-                const total = order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+                const totals = getOrderTotals(order);
                 const rowClassName =
                   order.status === 'pending'
                     ? 'bg-[rgba(212,175,55,0.08)]'
@@ -114,7 +115,19 @@ export default async function AdminOrdersPage({
                     </td>
                     <td className="px-4 py-3">{order.customerName}</td>
                     <td className="px-4 py-3">{order.email}</td>
-                    <td className="px-4 py-3">{currency(total)}</td>
+                    <td className="px-4 py-3">
+                      <span className="font-semibold">{currency(totals.grandTotal)}</span>
+                      {totals.discountAmount > 0 ? (
+                        <span className="mt-1 block text-xs text-green-300">
+                          {order.discountCode ? `${order.discountCode}: ` : 'Discount: '}-{currency(totals.discountAmount)}
+                        </span>
+                      ) : null}
+                      {order.shippingMethodLabel ? (
+                        <span className="mt-1 block text-xs text-[var(--color-sand)]">
+                          {order.shippingMethodLabel}
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3 capitalize">
                       {order.status.replace('-', ' ')}
                       {order.needsFollowUp ? <span className="ml-2 text-xs text-rose-300">Needs follow-up</span> : null}

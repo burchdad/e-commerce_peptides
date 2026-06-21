@@ -35,6 +35,11 @@ const defaultFormState = {
 
 const stepLabels = ['Customer Info', 'Address', 'Shipping Method', 'Acknowledgements', 'Payment Preference', 'Review & Submit'];
 
+const hasMultipleDiscountCodes = (code: string) => {
+  const normalized = code.trim().replace(/\s+/g, ' ');
+  return Boolean(normalized) && (/[,;|+&]/.test(normalized) || normalized.split(' ').length > 1);
+};
+
 export const CheckoutForm = ({
   catalog,
   discountRules,
@@ -138,6 +143,16 @@ export const CheckoutForm = ({
     }
 
     if (!validateStep()) {
+      return;
+    }
+
+    if (hasMultipleDiscountCodes(discountCode)) {
+      setMessage('Only one discount code can be used per order.');
+      return;
+    }
+
+    if (discountCode.trim() && !pricing.appliedRule) {
+      setMessage('Enter a valid active discount code or leave the discount field blank.');
       return;
     }
 

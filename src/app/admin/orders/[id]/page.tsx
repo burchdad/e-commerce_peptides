@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { isAdminAuthenticated } from '@/lib/auth/admin';
 import { getOrderRequestRecord } from '@/lib/services/order-requests';
 import { currency } from '@/lib/utils/format';
+import { getOrderTotals } from '@/lib/utils/order-totals';
 
 import { AdminOrderActions } from '@/components/admin/admin-order-actions';
 
@@ -28,6 +29,8 @@ export default async function AdminOrderDetailPage({
       </div>
     );
   }
+
+  const totals = getOrderTotals(order);
 
   return (
     <div className="space-y-6">
@@ -55,17 +58,27 @@ export default async function AdminOrderDetailPage({
             <Detail label="Email" value={order.email} />
             <Detail label="Phone" value={order.phone} />
             <Detail label="Address" value={`${order.shippingAddress}, ${order.city}, ${order.state} ${order.postalCode}, ${order.country}`} />
+            <Detail label="Shipping Method" value={order.shippingMethodLabel ?? 'Not captured'} />
             <Detail label="Payment Preference" value={order.paymentMethodLabel} />
           </dl>
         </section>
 
         <section className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
-          <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Acknowledgements</h2>
-          <ul className="mt-4 space-y-2 text-sm text-[var(--color-ivory)]">
-            <li>Information accurate: {order.acknowledgements.informationAccurate ? 'Yes' : 'No'}</li>
-            <li>Terms accepted: {order.acknowledgements.termsAccepted ? 'Yes' : 'No'}</li>
-            <li>Verification accepted: {order.acknowledgements.verificationAccepted ? 'Yes' : 'No'}</li>
-          </ul>
+          <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Order Totals</h2>
+          <dl className="mt-4 space-y-3 text-sm text-[var(--color-ivory)]">
+            <SummaryRow label="Items Subtotal" value={currency(totals.subtotal)} />
+            <SummaryRow
+              label={order.discountCode ? `Discount (${order.discountCode})` : 'Discount'}
+              value={totals.discountAmount > 0 ? `-${currency(totals.discountAmount)}` : currency(0)}
+              valueClassName={totals.discountAmount > 0 ? 'text-green-300' : undefined}
+            />
+            <SummaryRow
+              label={order.shippingMethodLabel ? `Shipping (${order.shippingMethodLabel})` : 'Shipping'}
+              value={totals.shippingAmount > 0 ? currency(totals.shippingAmount) : 'Free / not charged'}
+            />
+            {totals.taxAmount > 0 ? <SummaryRow label="Sales Tax" value={currency(totals.taxAmount)} /> : null}
+            <SummaryRow label="Grand Total" value={currency(totals.grandTotal)} strong />
+          </dl>
         </section>
       </div>
 
@@ -95,6 +108,17 @@ export default async function AdminOrderDetailPage({
         </div>
       </section>
 
+      <section className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
+        <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Acknowledgements</h2>
+        <ul className="mt-4 space-y-2 text-sm text-[var(--color-ivory)]">
+          <li>Information accurate: {order.acknowledgements.informationAccurate ? 'Yes' : 'No'}</li>
+          <li>Terms accepted: {order.acknowledgements.termsAccepted ? 'Yes' : 'No'}</li>
+          <li>Verification accepted: {order.acknowledgements.verificationAccepted ? 'Yes' : 'No'}</li>
+          <li>Age confirmed: {order.acknowledgements.ageConfirmed ? 'Yes' : 'No'}</li>
+          <li>Research disclaimer accepted: {order.acknowledgements.researchDisclaimerAccepted ? 'Yes' : 'No'}</li>
+        </ul>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-xl border border-[var(--color-gold-soft)] bg-[var(--color-ink-2)] p-5">
           <h2 className="font-serif text-2xl text-[var(--color-ivory)]">Order Timeline</h2>
@@ -120,6 +144,23 @@ const Detail = ({ label, value }: { label: string; value: string }) => (
   <div>
     <dt className="text-xs uppercase tracking-[0.14em] text-[var(--color-gold)]">{label}</dt>
     <dd className="mt-1 break-words leading-relaxed text-[var(--color-ivory)]">{value}</dd>
+  </div>
+);
+
+const SummaryRow = ({
+  label,
+  value,
+  strong = false,
+  valueClassName = '',
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  valueClassName?: string;
+}) => (
+  <div className={`flex flex-wrap items-center justify-between gap-3 ${strong ? 'border-t border-[var(--color-gold-soft)] pt-3 text-base' : ''}`}>
+    <dt className="text-[var(--color-gold)]">{label}</dt>
+    <dd className={`${strong ? 'font-semibold text-[var(--color-ivory)]' : ''} ${valueClassName}`}>{value}</dd>
   </div>
 );
 

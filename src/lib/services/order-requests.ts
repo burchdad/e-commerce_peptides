@@ -12,6 +12,7 @@ import type {
   OrderWorkflowStatus,
   StoredOrderRequest,
 } from '@/lib/types';
+import { getOrderTotals } from '@/lib/utils/order-totals';
 
 declare global {
   var __orderRequestStore: Map<string, StoredOrderRequest> | undefined;
@@ -554,15 +555,9 @@ export const getOrderStats = async () => {
   const completedCount = completedOrders.length;
   const conversionRate = records.length > 0 ? (completedCount / records.length) * 100 : 0;
 
-  const totalRevenue = completedOrders.reduce(
-    (sum, record) => sum + record.items.reduce((inner, item) => inner + item.unitPrice * item.quantity, 0),
-    0,
-  );
+  const totalRevenue = completedOrders.reduce((sum, record) => sum + getOrderTotals(record).grandTotal, 0);
 
-  const pendingRevenue = pendingRevenueOrders.reduce(
-    (sum, record) => sum + record.items.reduce((inner, item) => inner + item.unitPrice * item.quantity, 0),
-    0,
-  );
+  const pendingRevenue = pendingRevenueOrders.reduce((sum, record) => sum + getOrderTotals(record).grandTotal, 0);
 
   return {
     total: records.length,
