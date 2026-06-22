@@ -177,9 +177,8 @@ export async function POST(request: Request) {
     ]);
 
     if (emailWarnings.length > 0) {
-      console.error('[order-request] email delivery warning', {
-        orderReference: order.orderReference,
-        warnings: emailWarnings,
+      emailWarnings.forEach((warning) => {
+        console.error(`[order-request] email delivery warning for ${order.orderReference}: ${warning}`);
       });
     }
 

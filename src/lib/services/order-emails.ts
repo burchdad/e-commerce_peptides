@@ -8,7 +8,7 @@ const logTemplate = (event: string, payload: Record<string, unknown>) => {
 };
 
 const fromAddress = process.env.EMAIL_FROM ?? siteConfig.supportEmail;
-const adminEmail = process.env.ADMIN_EMAIL ?? siteConfig.supportEmail;
+const rawAdminEmail = process.env.ADMIN_EMAIL ?? siteConfig.supportEmail;
 const resendApiKey = process.env.RESEND_API_KEY;
 const requiresEmailDelivery = process.env.NODE_ENV === 'production';
 
@@ -34,6 +34,25 @@ const paragraphize = (value: string) =>
     .split(/\n{2,}/)
     .map((paragraph) => `<p>${paragraph.replace(/\n/g, '<br />')}</p>`)
     .join('');
+
+const extractEmailAddress = (value: string) => value.match(/<([^>]+)>/)?.[1]?.trim() ?? value.trim();
+
+const getEmailDomain = (value: string) => {
+  const email = extractEmailAddress(value);
+  return email.includes('@') ? email.split('@').pop()?.toLowerCase() ?? 'unknown' : 'invalid';
+};
+
+const adminEmail = extractEmailAddress(rawAdminEmail);
+
+const getRecipientDomains = (to: string | string[]) => {
+  const recipients = Array.isArray(to) ? to : [to];
+  return recipients.map(getEmailDomain).join(',');
+};
+
+const getResendKeyShape = () => {
+  if (!resendApiKey) return 'missing';
+  return resendApiKey.startsWith('re_') ? 'present-re-prefix' : 'present-unexpected-prefix';
+};
 
 const sendEmail = async (event: string, payload: EmailPayload) => {
   if (!resendApiKey) {
@@ -73,7 +92,9 @@ const sendEmail = async (event: string, payload: EmailPayload) => {
       message = body;
     }
 
-    throw new Error(`Email delivery warning: ${message}`);
+    throw new Error(
+      `Email delivery warning: event=${event}; status=${response.status}; resend="${message}"; fromDomain=${getEmailDomain(fromAddress)}; toDomains=${getRecipientDomains(payload.to)}; key=${getResendKeyShape()}`,
+    );
   }
 };
 
